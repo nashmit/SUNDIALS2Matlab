@@ -1,0 +1,31 @@
+function initODE( example_name, t0, tf )
+
+    global s2m;
+    
+    if nargin < 3
+        t0 = 0;
+        tf = 1;
+    end
+    
+    addpath( './casadi' );
+    import casadi.*
+    
+    addpath( './DynamicalSystems');
+    
+    run( example_name );
+
+    intg_opts = struct;
+    intg_opts.expand = true;
+
+    helper_opts = struct;
+    helper_opts.jit = true;
+    %helper_opts.compiler = 'shell';
+    helper_opts.jit_options.verbose = true;
+    intg_opts.common_options.final_options = helper_opts;
+    intg_opts.t0 = t0;
+    intg_opts.tf = tf;
+
+    intg = integrator('intg','cvodes',sys,intg_opts);
+    
+    s2m.integrator = intg;
+end
