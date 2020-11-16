@@ -1,3 +1,5 @@
+%example of DAE
+
 import casadi.*
 
 x = SX.sym('x'); z = SX.sym('z'); p = SX.sym('p');

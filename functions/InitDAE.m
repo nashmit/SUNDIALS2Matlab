@@ -1,4 +1,9 @@
 function initODE( example_name, t0, tf  )
+% This function is used to initialize a dynamical system
+% input:
+%   example_name    -> name of the file that defines the dynamical system
+%   t0,tf           -> initial and final time for the integrator
+%                   -> if no values are given interval [0,1] is used
 
     global s2m;
     

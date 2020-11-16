@@ -1,3 +1,5 @@
+%example of ODE
+
 import casadi.*
 
 x = SX.sym('x');
