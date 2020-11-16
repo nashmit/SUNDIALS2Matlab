@@ -1,7 +1,7 @@
 # SUNDIALS2Matlab
 practical numerical optimization Heidelberg ( Matlab integration of SUNDIALS )
 
-#Instalation!
+# Instalation!
 This project requires CasADi framework which can be taken from here: https://web.casadi.org/get/
 The CasADi folder must be placed inside SUNDIALS2Matlab folder.
 
