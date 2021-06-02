@@ -105,10 +105,19 @@ Equivalently, the following qp needs to be solved:
 	\end{alignat}
 \end{subequations}
 
-The following terms include the evaluation of the dynamical system: $a(w_i), \nabla_w a(w_i)\lambda, \nabla_w^2 a(w)\lambda $
+The following terms include the evaluation of the dynamical system: $a(w_i), \nabla_w a(w_i), \nabla_w^2 a(w)\lambda $
 
 Functions for the following terms needs to be implemented:
-$x(t;t,s,q,p)$, $\nabla_{(s,q)} x(t;t,s,q,p)\lambda$, $\nabla^2_{(s,q)} x(t;t,s,q,p) \lambda$
+\begin{itemize}
+  \item $x(t;t,s,q,p)$
+        This is basically the standard forward integration.
+  \item $\nabla_{w} x(t;t,s,q,p)d$
+        This is the directional derivative of $x(t;t,s,q,p)$ in the direction $d$. 
+        This should be implemented in a way, that multiple directions can be evaluated at the same time.
+        The complete Jacobian can than be computed by computing directional derivatives in all unit directions.
+  \item $\nabla^2_{w} x(t;t,s,q,p)\lambda$
+        This is the hessian of $\lambda^\top x(t;t,s,q,p)$ with respect $w$.
+\end{itemize}
 
 
 %\begin{align}
