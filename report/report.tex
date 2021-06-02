@@ -79,21 +79,34 @@ Lagrange function at point $(s,q,\lambda, \mu)$
   }
 \end{align}
 
-At iteration $(x_i,\lambda_i, \mu_i)$ the following qp needs to be solved:
+We want to find the root of 
+\begin{align}
+\nabla \mathcal{L}(s,q,\lambda, \mu) = 0.
+\end{align}
+
+We apply newtons method and have to solve at iteration $(x_i,\lambda_i, \mu_i)$ 
+\begin{align}
+ \nabla^2 \mathcal{L}(s_i,q_i,\lambda_i, \mu_i) \Delta x +  \nabla \mathcal{L}(s_i,q_i,\lambda_i, \mu_i) = 0.
+\end{align}
+
+Equivalently the following qp needs to be solved:
 \begin{subequations}
 	\begin{alignat}{3} \label{eq:ocp}
-	&\underset{x(\cdot), u(\cdot) }{\text{min}} \qquad \mathrlap{\Delta x^\top \nabla^2_x \mathcal{L}(x_i,\lambda_i, \mu_i)\Delta x +\nabla \Phi(x_i)\Delta x}	\\
+	&\underset{\Delta x }{\text{min}} \qquad \mathrlap{\Delta x^\top \nabla^2_x \mathcal{L}(x_i,\lambda_i, \mu_i)\Delta x +\nabla \Phi(x_i)\Delta x}	\\
 	&\qquad \text{s.t.}\qquad	& a(x_i) + \nabla a(x_i) \Delta x = 0 \\
 	&				                  & b(x_i) + \nabla b(x_i) \Delta x \leq 0
 	\end{alignat}
 \end{subequations}
 
-The following terms include the evaluation of the dynamical system: $a(x_i), \nabla_x a(x_i)\lambda, \nabla_x^2$
+The following terms include the evaluation of the dynamical system: $a(x_i), \nabla_x a(x_i)\lambda, \nabla_x^2 a(s,q)\lambda $
 
 Functions for the following terms needs to be implemented:
 $x(t;t,s,q,p)$, $\nabla_{(s,q)} x(t;t,s,q,p)\lambda$ $\nabla^2_{(s,q)} x(t;t,s,q,p) \lambda$
 
 
+\begin{align}
+  
+\end{align}
 
 Dimensions:
 
