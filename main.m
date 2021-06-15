@@ -1,7 +1,7 @@
 addpath( './functions');
 
-InitDAE( 'testDAE',0,1.1 );
-%InitODE( 'testODE',0,0.5 );
+%InitDAE( 'testDAE',0,1.1 );
+InitODE( 'testODE',0,0.5 );
 
 global s2m;
 F = s2m.integrator;
@@ -14,6 +14,7 @@ z0 = 0;         %Initial algebraic variable
 p  = 0.1;       %Independent parameter
 u0 = 0;         %control
 
+
 disp(F)
 r = F('x0',x0,'z0',z0,'p',p);
 %r = F('x0',x0);
@@ -24,6 +25,7 @@ disp(r.xf)
 
 % Calculate one directional derivative, forward mode
 I_fwd = F.factory('I_fwd', {'x0', 'z0', 'p', 'fwd:p'}, {'fwd:xf', 'fwd:qf'});
+
 res = I_fwd('x0', x0, 'p', u0, 'fwd_p', 1);
 fwd_xf = full(res.fwd_xf);
 fwd_qf = full(res.fwd_qf);

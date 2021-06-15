@@ -4,5 +4,7 @@
 %
 % 
 function outp = integrateWSensitivies(inp)
+    outp = ComputeIntegration(inp);
+    outp.G = ComputeJacobian(inp).G;
     
 end

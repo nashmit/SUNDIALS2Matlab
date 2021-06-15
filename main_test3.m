@@ -34,6 +34,16 @@ disp(F);
 
 sim = F.mapaccum(N);
 
+% Calculate one directional derivative, forward mode
+I_fwd = sim.factory('I_fwd', {'x0','fwd:x0'}, {'fwd:xf'});
+
+res = I_fwd('x0', x0, 'fwd_x0', [1;3]);
+fwd_xf = full(res.fwd_xf);
+fprintf('%50s: d(xf)/d(x0)=%s ', 'Forward sensitivities', ...
+    sprintf('%d ', fwd_xf) );
+
+
+
 %tic
 f = @()sim('x0',x0,'p',[],'z0',[],'rx0',[],'rp',[],'rz0',[]);
 timeit(f)

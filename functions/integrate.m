@@ -1,6 +1,3 @@
-% regular forward integration without any sensitivites
-%
-
 function outp = integrate(inp)
-    
+    outp = ComputeIntegration(inp);
 end
