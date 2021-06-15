@@ -1,0 +1,161 @@
+\documentclass[12pt]{article}
+
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools} 
+
+
+\newcommand{\mtrx}[1]{\begin{bmatrix}#1\end{bmatrix}}
+
+\begin{document}
+ 
+Parametric optimal control problem:
+
+\begin{subequations}
+	\begin{alignat}{3} \label{eq:ocp}
+	&\underset{x(\cdot), u(\cdot) }{\text{min}} \qquad \mathrlap{\Phi(x(t_f))}	\\
+	&\qquad \text{s.t.}\qquad	&\dot{x}(t) 	&= f(x(t), u(t),p),  &  \label{eq:ivp1}	\\
+	&				& x(t_0)	&= x_0						\label{eq:ivp2}		\\
+	&				& x^{lo}	&\leq x(t) \leq x^{up},			\\
+	&				& u^{lo}	&\leq u(t) \leq u^{up}	& \forall t 	& \in \left[t_0,t_f \right]
+	\end{alignat}
+\end{subequations}
+
+Discretiezed with multiple shooting
+variables: $s_0, \cdots, s_N$ $q_0, \cdots, q_N$
+
+
+\begin{subequations}
+	\begin{alignat}{3} \label{eq:ocp}
+	&\underset{x(\cdot), u(\cdot) }{\text{min}} \qquad \mathrlap{\Phi(S_N)}	\\
+	&\qquad \text{s.t.}\qquad	&  s_{i+1}	&= x(t_{i+1}; t_i, s_i,q_i,p)	& \ \ i &= 0,...,N-1		\\
+	&				& s_0	    &= x_0							                                                      \\
+	&				& x^{lo}	&\leq s_i \leq x^{up},	                          &     i &= 0, ..., N		\\
+	&				& u^{lo}	&\leq q_i \leq u^{up}	                            &     i &= 0, ..., N
+	\end{alignat}
+\end{subequations}
+
+$x(t; t_0, s,q,p)$ is the solution of 
+\begin{align}
+  \dot{x}(t) &= f(x(t),q,p) \\
+  x(t_0) &= s
+\end{align}
+
+\section*{Sketch of SQP algorithm for discretized OCP}
+
+We collect the primal variables in $w = (s,q)$. 
+We introduce the following functions for the equality and inequality constraints:
+
+\begin{align}
+  a(w) &=   \mtrx{   x_0 - s_0 \\
+                      x(t_1;t_0,s_0,q_0,p) -s_1\\
+                      \vdots    \\
+                      x(t_N;t_{N-1},s_{N-1},q_{N-1},p) -s_N \\
+  } \\
+  b(w) &= \mtrx{ x^{lo} - s \\
+                   s - x^{up} \\
+                   q^{lo} - q \\
+                   q- q^{up}}
+\end{align}
+
+This allows us to write the OCP in the compact form
+\begin{subequations}
+	\begin{alignat}{3} 
+	&\underset{w}{\text{min}} \qquad \mathrlap{\Phi(w)}	\\
+	&\qquad \text{s.t.}\qquad	&  a(w)	& = 0   \\
+	&				                  &  b(w)	&	\leq 0 
+	\end{alignat}
+\end{subequations}
+
+Lagrange function  and its derivatives at point $(w,\lambda, \mu)$ are defined as
+
+\begin{align}
+  \mathcal{L}(w,\lambda, \mu) &= \Phi(w) - \lambda ^\top a(w)-  \mu^\top b(w) \\
+  \nabla \mathcal{L}(w,\lambda, \mu) &= 
+  \mtrx{
+            \nabla_w \Phi(w) -  \nabla_w a(w) \lambda - \nabla_w b(w) \mu  \\
+            a(w)    \\
+            b(w)
+  } \\
+  \nabla^2 \mathcal{L}(w,\lambda, \mu) &=
+  \mtrx{
+    \nabla^2_w \Phi(w) - \nabla^2_w a(w)\lambda  & \nabla_w a(w) & \nabla_w b(w)\\
+    \nabla_w a(w) ^\top\\
+    \nabla_w b(w)^\top
+  }
+\end{align}
+
+We want to solve 
+\begin{align}
+\nabla \mathcal{L}(w,\lambda, \mu) = 0.
+\end{align}
+
+We apply newtons method and have to solve at iteration $(w_i,\lambda_i, \mu_i)$ 
+\begin{align}
+ \nabla^2 \mathcal{L}(w_i,\lambda_i, \mu_i) \Delta w +  \nabla \mathcal{L}(w_i,\lambda_i, \mu_i) = 0.
+\end{align}
+
+Equivalently, the following qp needs to be solved:
+\begin{subequations}
+	\begin{alignat}{3} \label{eq:ocp}
+	&\underset{\Delta w }{\text{min}} \qquad \mathrlap{\Delta w^\top \nabla^2_w \mathcal{L}(w_i,\lambda_i, \mu_i)\Delta w +\nabla \Phi(w_i)\Delta w}	\\
+	&\qquad \text{s.t.}\qquad	& a(w_i) + \nabla a(w_i) \Delta w = 0 \\
+	&				                  & b(w_i) + \nabla b(w_i) \Delta w \leq 0
+	\end{alignat}
+\end{subequations}
+
+The following terms include the evaluation of the dynamical system: $a(w_i), \nabla_w a(w_i), \nabla_w^2 a(w)\lambda $
+
+Functions for the following terms needs to be implemented:
+\begin{itemize}
+  \item $x(t;t,s,q,p)$
+        This is basically the standard forward integration.
+  \item $\nabla_{w} x(t;t,s,q,p)d$
+        This is the directional derivative of $x(t;t,s,q,p)$ in the direction $d$. 
+        This should be implemented in a way, that multiple directions can be evaluated at the same time.
+        The complete Jacobian can than be computed by computing directional derivatives in all unit directions.
+  \item $\nabla^2_{w} x(t;t,s,q,p)\lambda$
+        This is the hessian of $\lambda^\top x(t;t,s,q,p)$ with respect $w$.
+\end{itemize}
+
+
+%\begin{align}
+%  
+%\end{align}
+
+Dimensions:
+
+\begin{align}
+  t &\in \mathbb{R}                \\
+  x &\in \mathbb{R}^{n_x}         \\
+  q &\in \mathbb{R}^{n_q}         \\
+  p &\in \mathbb{R}^{n_p}         \\
+\end{align}
+
+\begin{itemize}
+    \item \texttt{inp.thoriz} Integration horizon in the form of a $2 \times 1$ matrix. At the beginning  this can be assumed to be [0,1]. Later time transformation.
+    \item \texttt{inp.sd} Initial value for differential states 
+    \item \texttt{inp.sa} Initial value for algebraic states $\rightarrow$ ignore atm
+    \item \texttt{inp.q } Control parameter
+    \item \texttt{inp.p} Model parameter
+    \item \texttt{inp.sensdirs} Matrix of directional derivates of dimension $1+n_x+n_q+n_p \times n_{sens}$, where $n_{sens}$ is the number of derivates.
+         Order of directions: [t, x, q, p]. $t$ can be assumed to be 0.
+    \item \texttt{inp.lambda} Adjoint directional derivatives. 
+           Matrix of dimension $n_x \times n_{adj}$, where $n_{adj}$ is the number of adjoint derivates.
+\end{itemize}
+
+
+Output $\rightarrow$ see readme
+
+
+\textbf{Attention:} Implementation of $\nabla^2_{(s,q)} x(t;t,s,q,p) \lambda$ is the most challenging task. 
+Here adjoint variables are needed. 
+You have to think about the dimension of the results object. Make sure you initialize the integrator correctly. 
+You should understand the context, why exactly these evaluations are needed.
+
+
+\textbf{Attention:} I have not checked all transposes, dimensions, etc...
+
+\end{document}
+
