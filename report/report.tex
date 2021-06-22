@@ -1,19 +1,106 @@
-\documentclass[12pt]{article}
+%% Template for ENG 401 reports
+%% by Robin Turner
+%% Adapted from the IEEE peer review template
 
+%
+% note that the "draftcls" or "draftclsnofoot", not "draft", option
+% should be used if it is desired that the figures are to be displayed in
+% draft mode.
+
+%\documentclass[12pt]{IEEEtran}
+\documentclass[12pt, letterpaper]{article}
+\usepackage{cite} % Tidies up citation numbers.
+\usepackage{url} % Provides better formatting of URLs.
+\usepackage[utf8]{inputenc} % Allows Turkish characters.
+\usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables for horizontal lines
+\usepackage{graphicx}
 
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{mathtools} 
+\usepackage{listings}
 
+\usepackage[colorlinks]{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Overleaf Example},
+    pdfpagemode=FullScreen,
+    }
+
+
+\hyphenation{op-tical net-works semi-conduc-tor} % Corrects some bad hyphenation 
 
 \newcommand{\mtrx}[1]{\begin{bmatrix}#1\end{bmatrix}}
 
+\graphicspath{ {./images/}  }
+
+
 \begin{document}
+%\begin{titlepage}
+% paper title
+% can use linebreaks \\ within to get better formatting as desired
+\title{Technical Report \\  Advanced Practical in Optimal Control }
+
+
+% author names and affiliations
+
+\author{ Horea-Alexandru C\u{a}r\u{a}mizaru \\
+MSc. Scientific Computing\\
+Heidelberg University \\
+Heidelberg, Germany \\
+horea.caramizaru@stud.uni-heidelberg.de
+}
+\date{20/6/2021}
+
+
+% make the title area
+\maketitle
+%\tableofcontents
+%\listoffigures
+%\listoftables
+%\end{titlepage}
+
+%\IEEEpeerreviewmaketitle
+\begin{abstract}
+
+The main scope of this practical is to expose the interfaces of \textbf{IDAS/CVODES} integrators from the \textbf{SUNDIALS suite} \cite{hindmarsh2005sundials} to MATLAB. To this end, the implementation provides the mean to define a Dynamical System, to integrate it over an interval of time and to compute the first and second order sensitivity.
+
+Alongside with this report, a full implementation can be found here: \href{https://github.com/nashmit/SUNDIALS2Matlab}{SUNDIALS2Matlab}
+
+\end{abstract}
+
+
+
+
+
+\section{Introduction}
+The main task of this practical was to research 2 ways of integrating \textbf{SUNDIALS suite} as part of \textbf{MLI}  project and provide the necessary backend calls.
+
+The 2 possible libraries considered for this task were: CasADi \cite{Andersson2018} and AMICI \cite{frohlich2020amici} both of them providing an automatic way of exposing SUNDIALS c/c++ code integrators to dynamical languages like Python and Matlab.
+
+The final decision of using CasADi was taken after multiple testing on each of them and was based on the fact that is a better integrated project with a comprehensive documentation and a wider community.
  
-Parametric optimal control problem:
+%\section{Structure of the report}
+
+In section \ref{problem_definition} we will start by defining the kind of problems one should be able to solve based on the API we are going to provide.
+
+In section \ref{CasADi_section} we will continue by introducing CasADi's framework and the interface particularities of this library.
+
+
+Section \ref{implementation_section} will define the C/C++ code generation interface and the API for defining the dynamical system, computing the integration, jacobian of the ODE w.r.t. initial conditions and parameters of the ODE as well as the hessian wrt the parameters.
+   
+\section{Problem Definition}
+\label{problem_definition}
+
+The problem that needs to be solved regards the following OCP ( Optimal Control problem ):
+
 
 \begin{subequations}
-	\begin{alignat}{3} \label{eq:ocp}
+	\label{eq:ocp_continuous}
+	\begin{alignat}{3} \label{eq:cost_function_continuous}
 	&\underset{x(\cdot), u(\cdot) }{\text{min}} \qquad \mathrlap{\Phi(x(t_f))}	\\
 	&\qquad \text{s.t.}\qquad	&\dot{x}(t) 	&= f(x(t), u(t),p),  &  \label{eq:ivp1}	\\
 	&				& x(t_0)	&= x_0						\label{eq:ivp2}		\\
@@ -22,12 +109,11 @@ Parametric optimal control problem:
 	\end{alignat}
 \end{subequations}
 
-Discretiezed with multiple shooting
-variables: $s_0, \cdots, s_N$ $q_0, \cdots, q_N$
+To solve \ref{eq:ocp_continuous} numerically, we are using a discretized version by introducing the following multiple shooting variables: $s_0, \cdots, s_N$ $q_0, \cdots, q_N$
 
 
 \begin{subequations}
-	\begin{alignat}{3} \label{eq:ocp}
+	\begin{alignat}{3} \label{eq:ocp_discret}
 	&\underset{x(\cdot), u(\cdot) }{\text{min}} \qquad \mathrlap{\Phi(S_N)}	\\
 	&\qquad \text{s.t.}\qquad	&  s_{i+1}	&= x(t_{i+1}; t_i, s_i,q_i,p)	& \ \ i &= 0,...,N-1		\\
 	&				& s_0	    &= x_0							                                                      \\
@@ -36,31 +122,40 @@ variables: $s_0, \cdots, s_N$ $q_0, \cdots, q_N$
 	\end{alignat}
 \end{subequations}
 
-$x(t; t_0, s,q,p)$ is the solution of 
-\begin{align}
+where $x(t; t_0, s,q,p)$ is the solution of \ref{eq:IVP}
+\begin{subequations}
+\label{eq:IVP}
+\begin{align}  
   \dot{x}(t) &= f(x(t),q,p) \\
   x(t_0) &= s
 \end{align}
+\end{subequations}
 
-\section*{Sketch of SQP algorithm for discretized OCP}
 
-We collect the primal variables in $w = (s,q)$. 
-We introduce the following functions for the equality and inequality constraints:
+
+%\subsection{SQP algorithm for discretized OCP}
+
+
+Next, we define the primal variables as $w = (s,q)$ and we introduce the following functions for equality and inequality constraints:
 
 \begin{align}
+	\label{eq:equality}
   a(w) &=   \mtrx{   x_0 - s_0 \\
                       x(t_1;t_0,s_0,q_0,p) -s_1\\
                       \vdots    \\
                       x(t_N;t_{N-1},s_{N-1},q_{N-1},p) -s_N \\
-  } \\
+  } \\  
+  \label{eq:inequality}
   b(w) &= \mtrx{ x^{lo} - s \\
                    s - x^{up} \\
                    q^{lo} - q \\
                    q- q^{up}}
 \end{align}
 
-This allows us to write the OCP in the compact form
+Based on \ref{eq:equality} and \ref{eq:inequality} one can write the OCP in a more compact form:
+
 \begin{subequations}
+	\label{eq:OCP_discret_compact}
 	\begin{alignat}{3} 
 	&\underset{w}{\text{min}} \qquad \mathrlap{\Phi(w)}	\\
 	&\qquad \text{s.t.}\qquad	&  a(w)	& = 0   \\
@@ -68,7 +163,7 @@ This allows us to write the OCP in the compact form
 	\end{alignat}
 \end{subequations}
 
-Lagrange function  and its derivatives at point $(w,\lambda, \mu)$ are defined as
+For \ref{eq:OCP_discret_compact} the Lagrange function and its derivatives at point $(w,\lambda, \mu)$ are defined as follows:
 
 \begin{align}
   \mathcal{L}(w,\lambda, \mu) &= \Phi(w) - \lambda ^\top a(w)-  \mu^\top b(w) \\
@@ -85,53 +180,249 @@ Lagrange function  and its derivatives at point $(w,\lambda, \mu)$ are defined a
     \nabla_w b(w)^\top
   }
 \end{align}
-
-We want to solve 
+\\
+\\
+\\
+\\
+\\
+\\
+We want to be able to solve:
 \begin{align}
 \nabla \mathcal{L}(w,\lambda, \mu) = 0.
 \end{align}
 
-We apply newtons method and have to solve at iteration $(w_i,\lambda_i, \mu_i)$ 
+We apply Newton's method and we have to solve for $(w_i,\lambda_i, \mu_i)$ :
 \begin{align}
  \nabla^2 \mathcal{L}(w_i,\lambda_i, \mu_i) \Delta w +  \nabla \mathcal{L}(w_i,\lambda_i, \mu_i) = 0.
 \end{align}
 
-Equivalently, the following qp needs to be solved:
+Equivalently, the following QP ( Quadratic Programming ) needs to be solved:
 \begin{subequations}
-	\begin{alignat}{3} \label{eq:ocp}
+    \label{eq:ocp_QP}
+	\begin{alignat}{3} 
 	&\underset{\Delta w }{\text{min}} \qquad \mathrlap{\Delta w^\top \nabla^2_w \mathcal{L}(w_i,\lambda_i, \mu_i)\Delta w +\nabla \Phi(w_i)\Delta w}	\\
 	&\qquad \text{s.t.}\qquad	& a(w_i) + \nabla a(w_i) \Delta w = 0 \\
 	&				                  & b(w_i) + \nabla b(w_i) \Delta w \leq 0
 	\end{alignat}
 \end{subequations}
 
-The following terms include the evaluation of the dynamical system: $a(w_i), \nabla_w a(w_i), \nabla_w^2 a(w)\lambda $
+To solve \ref{eq:ocp_QP}, the following terms, which include the evaluation of the dynamical system, must be evaluated: $ a(w_i), \nabla_w a(w_i), \nabla_w^2 a(w)\cdot \lambda $
+\\
 
-Functions for the following terms needs to be implemented:
+The process of evaluation of \boldmath$ a(w_i), \nabla_w a(w_i), \nabla_w^2 a(w) \cdot \lambda $ requires the implementation of the following functions, as part of integration of \textbf{SUNDIALS}:
+
 \begin{itemize}
-  \item $x(t;t,s,q,p)$
-        This is basically the standard forward integration.
-  \item $\nabla_{w} x(t;t,s,q,p)d$
-        This is the directional derivative of $x(t;t,s,q,p)$ in the direction $d$. 
-        This should be implemented in a way, that multiple directions can be evaluated at the same time.
-        The complete Jacobian can than be computed by computing directional derivatives in all unit directions.
-  \item $\nabla^2_{w} x(t;t,s,q,p)\lambda$
-        This is the hessian of $\lambda^\top x(t;t,s,q,p)$ with respect $w$.
+  \item \boldmath$x(t;t,s,q,p)$
+        Standard forward integration.
+  \item \boldmath$\nabla_{w} x(t;t,s,q,p)\cdot d$
+        This is the directional derivative of $x(t;t,s,q,p)$ in the direction $d$. Multiple directions can be evaluated at the same time. The complete Jacobian can be computed by computing directional derivatives in all unit directions.
+  \item \boldmath$\nabla^2_{w} x(t;t,s,q,p) \cdot \lambda$
+        Hessian of $\lambda^\top \cdot x(t;t,s,q,p)$ with respect $w$.
 \end{itemize}
-
 
 %\begin{align}
 %  
 %\end{align}
 
-Dimensions:
+Where the dimensions are:
 
+\begin{subequations}
 \begin{align}
   t &\in \mathbb{R}                \\
   x &\in \mathbb{R}^{n_x}         \\
   q &\in \mathbb{R}^{n_q}         \\
   p &\in \mathbb{R}^{n_p}         \\
 \end{align}
+\end{subequations}
+
+
+\section{CasADi}
+\label{CasADi_section}
+
+CasADi is an open-source software tool for numerical optimization in general and optimal control (i.e. optimization involving differential equations) in particular. \cite{Andersson2018}
+
+The main scope of CasADi is automatic differentiation. Besides that, it has also support for ODE/DAE integration and sensitivity analysis, nonlinear programming and interfaces to other numerical tools ( \textbf{SUNDIALS suite} )
+
+At the core of CasADi is a self-contained symbolic framework that allows the user to construct symbolic expressions using a MATLAB inspired everything-is-a-matrix syntax, i.e. vectors are treated as n-by-1 matrices and scalars as 1-by-1 matrices. Further on, the constructed symbolical expression is used by numerical means.
+
+The \textbf{SX} data type is used to represent matrices whose elements consist of symbolic expressions made up by a sequence of unary and binary operations.
+Below are some examples of CasADi's  API for defining symbolical expressions.
+
+\begin{lstlisting}
+
+%Defining 2 symbolical variables 'a' and 'b':
+a = SX.sym('a');
+b = SX.sym('b');
+
+%Computing the Jacobian of 'sin(a)' with respect to 'a'.
+J = jacobian(sin(a),a);
+%Computing the Hessian
+H = hessian([a;b],[a;b]);
+
+% Function with two scalar inputs, one output.
+x = a^2+b^2;
+f = Function('f',{a,b},{x});
+x_res = f(2,3);
+
+% Function with one vector input, one output.
+x = a^2+b^2;
+f = Function('f',{[a;b]},{x});
+x_res = f([2;3]);
+
+% Solving a QP.
+y = a^2+b^2;
+solver = qpsol('solver','qpoases',struct('x',[a;b],'f',y));
+res = solver('x0',[0.1;0.2]);
+full(res.x)
+
+% Solving NLP.
+y = a^2+b^2;
+solver = nlpsol('solver','ipopt',struct('x',[a;b],'f',y));
+res = solver('x0',[0.1;0.2]);
+full(res.x)
+
+% Defining an ODE
+%   dot(a) = 1,
+%   dot(b) = a^2+b^2 = y
+%  
+y = a^2+b^2;
+intg = integrator('intg','cvodes',struct('x',[a;b],'ode',[1;y]));
+res = intg('x0',[0.1;0.2]);
+full(res.xf)
+
+\end{lstlisting}
+
+A comprehensive documentation for CasADi can be accessed here: \href{https://web.casadi.org/docs/}{CasADi}.
+
+
+\section{Implementation}
+\label{implementation_section}
+
+\subsection{General application flow}
+First, one must define a Dynamical System. This most be done in a separate file as part of the folder  \textit{DynamicalSystems} and it must follow the previously introduced CasADi's convention of \textbf{ODE/DAE} definition. 
+\\
+\\
+An example for Lotka-Volterra ODE would be:
+
+\begin{lstlisting}
+import casadi.*
+
+%define the states
+x = SX.sym('x',2);
+
+%define the parameters
+a = SX.sym('a',1);
+b = SX.sym('b',1);
+c = SX.sym('c',1);
+d = SX.sym('d',1);
+
+%define the control
+u = SX.sym('u',1);
+
+%building the dynamical system
+sys = struct;
+%states
+sys.x = x;
+%parameters
+sys.p = [u;a;b;c;d];
+%defining the ODE/DAE
+sys.ode = [ 
+    a * x(1) - b * x(1) * x(2) - x(1) * u ; 
+    c * x(1) * x(2) - d * x(2) - x(2) * u 
+    ];
+\end{lstlisting}
+
+Based on the above definition of the dynamical system, the user needs to call one time, a function that generates on the fly the customized C/C++ code for the corresponding integrator, it compiles the newly generated code ( \textbf{JIT compiler} ) and returns a \textbf{Functor} that provides future access to it.
+
+The corresponding call for \textit{Lotka-Volterra} ODE would look like as follows:
+
+\begin{lstlisting}
+InitODE('lotka_volterraCasADi', tStart, OneCallTimeStepSize);
+\end{lstlisting}
+
+The corresponding call dor DAE looks like as follows:
+\begin{lstlisting}
+InitDAE('DinamicalSystem',tStart,OneCallTimeStepSize);
+\end{lstlisting}
+
+The parameters of \textbf{InitODE()/InitDAE()} are as follows: 
+
+\begin{itemize}
+	\item \textit{lotka\_volterraCasADi} : Name of the file that contain the dynamical system
+	\item \textit{tStart} : The start time ( most of the time, it's $0$ )
+	\item \textit{OneCallTimeStepSize} : Length of one call step done by the integrator. The current CasADi's API implementation is limited to fix time-step for \textbf{SUNDIALS suite} which are build from C/C++ code generation.
+\end{itemize}
+At this point, all the prerequisites for the future calls of \textit{integrator}, \textit{sensitivity} and \textit{hessian} ( $integrate(inp)$, $integrateWSensitivies(inp)$ and \\ $integrateWSensitiviesAndHessian(inp)$ ) w.r.t the the ODE are satisfied. 
+
+Each of the calls must contain as parameter an object that contains a subset of the variables defined below:
+
+\begin{itemize}
+	\item $inp.N$ :  Number of integration steps in each interval from multiple shooting. 
+	\item $inp.M$ : Number of intervals. 
+
+%inp.sd -- initial value for differential states $x_0$
+	\item $inp.sd$ : Initial value for differential states for each multiple shooting interval.
+	
+%inp.q -- constant control for integration horizon
+	\item $inp.q$ : A vector of controls used by each integrator call with size: $inp.N \cdot inp.M$
+
+%inp.p -- local parameters
+	\item $inp.p$ : The values of the parameters in the same order it was defined previously in the dynamical system.
+
+%must be added by the user/extracted from ODE... etc
+
+	\item $inp.nx$ : The size of state X.
+	\item $inp.nq$ : The number of control parameters.
+	\item $inp.np$ : The number of parameters.
+	\item $inp.sensdirs$ : The sensitivity directions in form of matrix.
+	\item $inp.lambda$ : The adjoint sensitivity direction
+	\item $inp.threads$ : The number of threads for the thread pool used by the integrator
+\end{itemize}
+
+For complete examples please check the following files: $test\_integrate.m$, $test\_integrateWSensitivies.m$ and
+$test\_integrateWSensitiviesAndHessia.m$
+
+The computation process is vectorized and can also be done in parallel by defining the number of threads. For this, special attention must be given to the way the initialization process is handled.
+
+The Figure \ref{multipleShootingImg} offers a better perspective of the computational process.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[scale=0.25]{images/multipleShooting.png}
+    \caption{Multiple Shooting $I$ - is a fix time-step integrator call, $M$ - Number of intervals, $N$ - Number of integration steps.}
+    \label{multipleShootingImg}
+\end{figure}
+
+
+
+
+
+
+\subsection{API}
+\subparagraph{Dynamical system description}
+
+\begin{subequations}
+\begin{align}
+\dot{x}(t) &= f(t, x(t), q, p)   \\
+x(t_0) &=x_0
+\end{align}
+\end{subequations}
+
+Where:
+$t$ is the time,
+$x$ is the differential states,
+$q$ is the control( constant),
+$p$ is the parameter.
+\\
+The calling Convention from Matlab for \\
+\boldmath$x(t;t,s,q,p)$   
+\boldmath$\nabla_{w} x(t;t,s,q,p)\cdot d$   
+\boldmath$\nabla^2_{w} x(t;t,s,q,p) \cdot \lambda$
+        
+
+The functions are called with on input argument \textbf{inp} and return one output argument \textbf{outp}. So all function calls have the header `function outp = functionname(inp)`. Not all input attributes are always needed and not alle output attributes are always computed
+
+\subsection{Building the integrator}
 
 \begin{itemize}
     \item \texttt{inp.thoriz} Integration horizon in the form of a $2 \times 1$ matrix. At the beginning  this can be assumed to be [0,1]. Later time transformation.
@@ -149,13 +440,38 @@ Dimensions:
 Output $\rightarrow$ see readme
 
 
-\textbf{Attention:} Implementation of $\nabla^2_{(s,q)} x(t;t,s,q,p) \lambda$ is the most challenging task. 
-Here adjoint variables are needed. 
-You have to think about the dimension of the results object. Make sure you initialize the integrator correctly. 
-You should understand the context, why exactly these evaluations are needed.
 
 
-\textbf{Attention:} I have not checked all transposes, dimensions, etc...
+\section{Proposed Solutions}
+\section{Criteria for Assessing Solutions} \label{sec:criteria}
+This may be a modified version of your proposal depending on previously carried out research or any feedback received.  
+
+
+
+\section{Research Methodology}
+
+\section{Analysis and Interpretation}
+
+\section{Conclusions and Recommendations}
+
+
+
+
+
+
+\bibliography{References}
+\bibliographystyle{plain}
+
+
+
+
+
+
+
+
+
+
+
+
 
 \end{document}
-
