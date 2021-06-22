@@ -11,7 +11,7 @@ tFin = 50;
 x0 = [1;1];
 
 N = 100; % nr. of integration steps in each interval from multiple shooting.
-M = 4; % number of intervals 
+M = 10; % number of intervals 
 
 %one time initialization/build/compile integrator
 InitODE( 'lotka_volterraCasADi',tStart , tFin/( N * M ) );
@@ -58,7 +58,7 @@ inp.nq = nq;
 inp.np = np;
 
 %inp.sensdirs -- sensitivity directions in form of matrix
-% -->>> must add it!
+inp.sensdirs = eye(inp.nx + inp.np)
 
 % set the number of threads for the thread pool used by the integrator
 % ( I think it can also be done in a distributed way too... but I'm not
