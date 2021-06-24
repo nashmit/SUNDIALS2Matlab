@@ -18,8 +18,40 @@ represents the mathematical function
   f(x_0,q_0, d_{x_0},d_{q}) = G_x(x_0,q) d_{x_0} + G_p (x_0,q) d_q.
 \end{align}
 It maps $\mathbb{R}^2 \times \mathbb{R}^2 \times \mathbb{R}^2 \times \mathbb{R}^2\mapsto \mathbb{R}^2$.
-If we want to compute the full Jacobian, we need to evaluate the function four times. For every direction once. Casadi allows to do this by one function call with
+If we want to compute the full Jacobian, we need to evaluate the function four times. 
+For every direction once. 
+Casadi allows to do this by one function call with
 \begin{align}
-  f(x_0,q_0, \begin{bmatrix} 1 0 0 0  \\ 0 1 0 0 \end{bmatrix},\begin{bmatrix}  0 0 1 0  \\  0 0 0 1 \end{bmatrix})
+  f(x_0,q_0, \begin{bmatrix} 1 0 0 0  \\ 0 1 0 0 \end{bmatrix},\begin{bmatrix}  0 0 1 0  \\  0 0 0 1 \end{bmatrix}).
 \end{align}
-
+This is equivalent to 
+\begin{align}
+  f(
+    \begin{bmatrix}
+    x_0  x_0  x_0  x_0
+    \end{bmatrix},
+    \begin{bmatrix}
+    q_0   q_0 q_0 q_0
+    \end{bmatrix},
+  \begin{bmatrix} 1 0 0 0  \\ 0 1 0 0 \end{bmatrix}
+  ,\begin{bmatrix}  0 0 1 0  \\  0 0 0 1 \end{bmatrix}).
+\end{align}
+because internally $x_0$ and $q_0$ gets duplicated and the function $f$ is evaluated column wise.
+In order to compute the Jacobian for multiple values, we need to duplicate the initial values and the directions as well.
+To evaluate the Jacobian for $x_0^1,x_0^2x_0^3$ and $q_0^1, q_0^2, q_0^3$ we have to do the function call 
+\begin{align}
+  f(
+    &\begin{bmatrix}
+    x_0^1  x_0^1  x_0^1  x_0^1
+    x_0^2  x_0^2  x_0^2  x_0^2
+    x_0^3  x_0^3  x_0^3  x_0^3
+    \end{bmatrix},  \\
+    &\begin{bmatrix}
+    q_0^1   q_0^1 q_0^1 q_0^1
+    q_0^2   q_0^2 q_0^2 q_0^2
+    q_0^3   q_0^3 q_0^3 q_0^3
+    \end{bmatrix}, \\
+    &\begin{bmatrix} 1 0 0 0  1 0 0 0 1 0 0 0 \\ 0 1 0 0 0 1 0 0 0 1 0 0\end{bmatrix}, \\
+    &\begin{bmatrix}  0 0 1 0  0 0 1 0 0 0 1 0  \\   0 0 0 1  0 0 0 1 0 0 0 1 \end{bmatrix}).
+\end{align}
+and split up the result in the individual Jacobians afterwards.
