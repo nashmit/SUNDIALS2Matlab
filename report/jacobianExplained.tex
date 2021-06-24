@@ -1,0 +1,25 @@
+Explanation for example in \texttt{howToComputeMultipleJacobiansAtOnce.m}.
+
+The following function is an object, which represents the mathematical
+\begin{align}
+  x(x_0,q).
+\end{align}
+It maps $\mathbb{R}^2 \times \mathbb{R}^2 \mapsto \mathbb{R}^2$.
+\begin{lstlisting}[basicstyle=\small]
+  I = casadi.integrator('I','cvodes',ode_struct,opts);
+\end{lstlisting}
+
+The object 
+\begin{lstlisting}[basicstyle=\small]
+  I_fwd = I.factory('I_fwd',{'x0','p','fwd:x0','fwd:p'},{'fwd:xf'}) 
+\end{lstlisting}
+represents the mathematical function
+\begin{align}
+  f(x_0,q_0, d_{x_0},d_{q}) = G_x(x_0,q) d_{x_0} + G_p (x_0,q) d_q.
+\end{align}
+It maps $\mathbb{R}^2 \times \mathbb{R}^2 \times \mathbb{R}^2 \times \mathbb{R}^2\mapsto \mathbb{R}^2$.
+If we want to compute the full Jacobian, we need to evaluate the function four times. For every direction once. Casadi allows to do this by one function call with
+\begin{align}
+  f(x_0,q_0, \begin{bmatrix} 1 0 0 0  \\ 0 1 0 0 \end{bmatrix},\begin{bmatrix}  0 0 1 0  \\  0 0 0 1 \end{bmatrix})
+\end{align}
+
