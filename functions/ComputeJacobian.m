@@ -41,7 +41,7 @@ function outp = ComputeJacobian(inp)
     fwd_x0 = fwd(:,1:inp.nx);
     fwd_p = fwd(:,inp.nx+1:inp.nx+inp.np);
     
-    %each column of the transpose matrix must be multiplied M respectivly N*M
+    %each column of the transpose matrix must be duplicated M respectively  N*M
     %times.
     fwd_x0 = kron(fwd_x0', ones(1,M));
     fwd_p = kron(fwd_p', ones(1,N*M));

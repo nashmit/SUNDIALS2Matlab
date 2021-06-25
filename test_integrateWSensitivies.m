@@ -10,8 +10,8 @@ tFin = 50;
 %init state
 x0 = [1;1];
 
-N = 100; % nr. of integration steps in each interval from multiple shooting.
-M = 10; % number of intervals 
+N = 10; % nr. of integration steps in each interval from multiple shooting.
+M = 2; % number of intervals 
 
 %one time initialization/build/compile integrator
 InitODE( 'lotka_volterraCasADi',tStart , tFin/( N * M ) );
