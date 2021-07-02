@@ -24,6 +24,7 @@ function outp = integrate(inp)
     %trigger the integrator
     result = multiple_shooting_simulation( 'x0', x0, 'p', parameters_and_control, 'z0', [], 'rx0', [], 'rp', [], 'rz0', [] );
     
-    outp.xf = result.xf;
+    result_final = full(result.xf);
+    outp.xf = result_final;
 
 end

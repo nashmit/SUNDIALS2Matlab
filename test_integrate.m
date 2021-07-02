@@ -59,10 +59,7 @@ inp.np = np;
 % sure... )
 inp.threads = 1;
 
-result_DM = integrate(inp);
-result = full(result_DM.xf);
+result = integrate(inp);
+result_fx = result.xf;
 
-%debug purpose
-fprintf('%50s: result %s ', 'Integration', ...
-    sprintf('%d ', result) );
 
