@@ -11,8 +11,8 @@ tFin = 50;
 x0 = [1;1];
 
 %[N,~] = size(t)
-N = 100 % nr. of integration steps in each interval from multiple shooting.
-M = 10 % number of intervals 
+N = 10 % nr. of integration steps in each interval from multiple shooting.
+M = 1 % number of intervals 
 InitODE( 'lotka_volterraCasADi',tStart , tFin/( N * M ) );
 
 global s2m;
@@ -84,10 +84,10 @@ r = multiple_shooting_simulation('x0', XX0, 'p', ppp, 'z0', [], 'rx0', [], 'rp',
 sol = full(r.xf);
 
 time = linspace(tStart,tFin,N);
-figure (2)
-plot(time,sol(1,N+1:2*N),'-');
+figure (4)
+plot(time,sol(1,1:N),'--');
 hold on
-plot(time,sol(2,N+1:2*N),'-');
+plot(time,sol(2,1:N),'--');
 hold off
-figure (3)
-plot(sol(1,N+1:2*N),sol(2,N+1:2*N),'-');
+figure (5)
+plot(sol(1,1:N),sol(2,1:N),'-');
