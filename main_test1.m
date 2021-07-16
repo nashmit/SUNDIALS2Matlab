@@ -9,7 +9,7 @@ x0 = [pi/6;0];
 
 %time interval
 tphi = 0;
-tfin = 30;
+tfin = 500;
 
 %tic
 [t,x] = ode45( 'Pendulum', [tphi tfin] , x0 );
@@ -17,7 +17,8 @@ f = @()ode45( 'Pendulum', [tphi tfin] , x0 );
 timeit(f)
 %toc
 
-disp(x(end,1));disp(x(end,2));
+%cheching the output!
+%disp(x(end,1));disp(x(end,2));
 
 
 %figure (1)
@@ -49,8 +50,8 @@ f = @()sim('x0',x0,'p',[],'z0',[],'rx0',[],'rp',[],'rz0',[]);
 timeit(f)
 %toc
 
-disp(r.xf);
-
+%cheching the output!
+%disp(r.xf);
 
 %size(r)
 

@@ -7,14 +7,14 @@ clc
 x0=[-8 ;8; 27];
 %tspan=[0,20];
 tStart = 0;
-tFin = 50;
+tFin = 500;
 
 [t,x]=ode45('lorenz',[tStart tFin],x0 );
 f=@()ode45('lorenz',[tStart tFin],x0 );
 timeit(f)
 
-
-disp( [ x(end,1) x(end,2) x(end,3) ] );
+%print output!
+%disp( [ x(end,1) x(end,2) x(end,3) ] );
 
 
 %figure (1)
@@ -32,8 +32,10 @@ disp( [ x(end,1) x(end,2) x(end,3) ] );
 [N,~] = size(t)
 %%InitODE( 'lorenzCasADi',tStart , tFin/N );
 InitODE( 'lorenzCasADi',tStart , tFin );
+
 global s2m;
 F = s2m.integrator;
+
 %%disp(F);
 %sim = F.mapaccum(N);
 sim = F;
@@ -45,7 +47,9 @@ timeit(f)
 %toc
 
 r = sim('x0',x0,'p',[], 'z0',[],'rx0',[],'rp',[],'rz0',[]);
-sol = full(r.xf)
+
+%print output!
+%sol = full(r.xf)
 
 %figure (2)
 %plot(sol(1,:),sol(3,:),'o')

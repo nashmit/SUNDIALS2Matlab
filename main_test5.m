@@ -6,7 +6,8 @@ clc
 
 %time interval
 tStart =0;
-tFin = 300;
+tFin = 500;
+
 %init state
 x0 = [1;1];
 
@@ -23,7 +24,8 @@ parameters_and_control = [u; p];
 f=@()ode23(@(t,y) lotka_volterra(t,y,parameters_and_control),[tStart tFin],x0 );
 timeit(f)
 
-disp( [ x(end,1) x(end,2) ] );
+%test the output!
+%disp( [ x(end,1) x(end,2) ] );
 
 [N,~] = size(t)
 
@@ -41,5 +43,6 @@ f = @()sim('x0',x0,'p',parameters_and_control,'z0',[],'rx0',[],'rp',[],'rz0',[])
 timeit(f)
 %toc
 
-sol = full(r.xf)
+%test the output!
+%sol = full(r.xf)
 

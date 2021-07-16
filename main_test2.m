@@ -4,9 +4,8 @@ addpath( './functions');
 clear all
 clc
 
-
 tStart=0; 
-tFin=50;
+tFin=500;
 
 x0=[0; 1];
 
@@ -21,7 +20,8 @@ timeit(f)
 %plot(t,x);
 %legend('x1','x2');
 
-disp(x(end,1)); disp(x(end,2));
+%check result!
+%disp(x(end,1)); disp(x(end,2));
 
 
 [N,~] = size(t)
@@ -45,4 +45,6 @@ timeit(f)
 r = sim('x0',x0,'p',[],'z0',[],'rx0',[],'rp',[],'rz0',[]);
 
 sol = full(r.xf);
-disp(sol);
+
+%check result!
+%disp(sol);
