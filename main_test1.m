@@ -9,13 +9,16 @@ x0 = [pi/6;0];
 
 %time interval
 tphi = 0;
-tfin = 10000;
+tfin = 30;
 
 %tic
 [t,x] = ode45( 'Pendulum', [tphi tfin] , x0 );
 f = @()ode45( 'Pendulum', [tphi tfin] , x0 );
 timeit(f)
 %toc
+
+disp(x(end,1));disp(x(end,2));
+
 
 %figure (1)
 %size(x)
@@ -26,23 +29,28 @@ timeit(f)
 %N represents the number of intermediate points for plotting/integration step...
 %I'm using this number for a 'fair' comparison...
 [N,~] = size(t)
-InitODE( 'PendulumCasADi',tphi , tfin/N );
+%%InitODE( 'PendulumCasADi',tphi , tfin/N );
+InitODE( 'PendulumCasADi',tphi , tfin );
 
 global s2m;
 F = s2m.integrator;
-disp(F);
+%disp(F);
 %trigger the integrator N times for [ tphi , tfin] time interval
-sim = F.mapaccum(N);
+%%sim = F.mapaccum(N);
+sim = F;
 
 %r = sim(x0,[],[],[],[],[]);
 %r(:,N)
 %sol = full(r);
 
 %tic
-%r = sim('x0',x0,'p',[],'z0',[],'rx0',[],'rp',[],'rz0',[]);
+r = sim('x0',x0,'p',[],'z0',[],'rx0',[],'rp',[],'rz0',[]);
 f = @()sim('x0',x0,'p',[],'z0',[],'rx0',[],'rp',[],'rz0',[]);
 timeit(f)
 %toc
+
+disp(r.xf);
+
 
 %size(r)
 

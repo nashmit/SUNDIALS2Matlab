@@ -15,12 +15,12 @@ p  = 0.1;       %Independent parameter
 u0 = 0;         %control
 
 
-disp(F)
+disp(F);
 r = F('x0',x0,'z0',z0,'p',p);
 %r = F('x0',x0);
 
 %result of integration...
-disp(r)
+%disp(r)
 disp(r.xf)
 
 % Calculate one directional derivative, forward mode
