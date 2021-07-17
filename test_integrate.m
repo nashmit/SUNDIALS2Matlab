@@ -61,5 +61,3 @@ inp.threads = 1;
 
 result = integrate(inp);
 result_fx = result.xf;
-
-

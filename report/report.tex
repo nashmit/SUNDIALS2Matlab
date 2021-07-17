@@ -19,6 +19,9 @@
 \usepackage{amssymb}
 \usepackage{mathtools} 
 \usepackage{listings}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows}
 
 \usepackage[colorlinks]{hyperref}
 \hypersetup{
@@ -39,6 +42,17 @@
 
 
 \begin{document}
+
+% Define block styles
+\tikzstyle{decision} = [diamond, draw, fill=blue!20, 
+    text width=4.5em, text badly centered, node distance=3cm, inner sep=0pt]
+\tikzstyle{block} = [rectangle, draw, fill=blue!20, 
+    text width=5em, text centered, rounded corners, minimum height=4em]
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{cloud} = [draw, ellipse,fill=red!20, node distance=3cm,
+    minimum height=2em]
+
+
 %\begin{titlepage}
 % paper title
 % can use linebreaks \\ within to get better formatting as desired
@@ -66,7 +80,7 @@ horea.caramizaru@stud.uni-heidelberg.de
 %\IEEEpeerreviewmaketitle
 \begin{abstract}
 
-The main scope of this practical is to expose the interfaces of \textbf{IDAS/CVODES} integrators from the \textbf{SUNDIALS suite} \cite{hindmarsh2005sundials} to MATLAB. To this end, the implementation provides the mean to define a Dynamical System, to integrate it over an interval of time and to compute the first and second order sensitivity.
+The main scope of this practical is to expose the interfaces of \textbf{IDAS/CVODES} integrators from the \textbf{SUNDIALS suite} \cite{hindmarsh2005sundials} into \textbf{MATLAB}. To this end, the implementation provides the mean to define a \textbf{Dynamical System}, to computer \textbf{forward integration} as well as \textbf{first and second order sensitivity} in a \textbf{ parallelized} way. All of these are done by \textbf{automatically C++ code generation} of the \textbf{integrator} and of the \textbf{sensitivity} by using a \textbf{high level language} to define a \textbf{Dynamical System} on top of \textbf{CasADi}, which closely resembles a \textbf{symbolical framework} but without having the corresponding disadvantages.
 
 Alongside with this report, a full implementation can be found here: \href{https://github.com/nashmit/SUNDIALS2Matlab}{SUNDIALS2Matlab}
 
@@ -77,20 +91,28 @@ Alongside with this report, a full implementation can be found here: \href{https
 
 
 \section{Introduction}
-The main task of this practical was to research 2 ways of integrating \textbf{SUNDIALS suite} as part of \textbf{MLI}  project and provide the necessary backend calls.
+The main task of this practical was to research 2 ways of integrating \textbf{SUNDIALS suite} as part of \textbf{MLI}  project and also to provide the necessary  \textbf{backend framework}.
 
-The 2 possible libraries considered for this task were: CasADi \cite{Andersson2018} and AMICI \cite{frohlich2020amici} both of them providing an automatic way of exposing SUNDIALS c/c++ code integrators to dynamical languages like Python and Matlab.
+The 2 possible libraries considered for this task were: \textbf{CasADi} \cite{Andersson2018} and \textbf{AMICI} \cite{frohlich2020amici} both of them providing an automatic way of exposing \textbf{SUNDIALS} c/c++ code integrators to dynamical languages like Python and Matlab.
 
-The final decision of using CasADi was taken after multiple testing on each of them and was based on the fact that is a better integrated project with a comprehensive documentation and a wider community.
+The final decision of using \textbf{CasADi} was taken after multiple testing on each of them and was based on the fact that is a better integrated project with a comprehensive documentation and a wider community. 
+
+
+Besides providing access to \textbf{SUNDIALS suite}, \textbf{CasADi} offers a way of defining \textbf{Dynamical Systems} using a \textbf{high level language} as well as doing \textbf{C++ code generation} at run time ( JIT ) starting from a \textbf{symbolical representation} of the problem and general means to \textbf{parallelize} the computation.
  
-%\section{Structure of the report}
-
-In section \ref{problem_definition} we will start by defining the kind of problems one should be able to solve based on the API we are going to provide.
-
-In section \ref{CasADi_section} we will continue by introducing CasADi's framework and the interface particularities of this library.
+\section{Structure of the report}
 
 
-Section \ref{implementation_section} will define the C/C++ code generation interface and the API for defining the dynamical system, computing the integration, jacobian of the ODE w.r.t. initial conditions and parameters of the ODE as well as the hessian wrt the parameters.
+In \textit{Section} \ref{problem_definition} we will start by defining the Optimal Control problem by spiting it using hierarchical layer architecture. At the end of this section, it will be clear how the \textbf{backend framework} provided can be integrated into a general \textbf{OCP} framework.\\
+
+
+
+\textit{Section} \ref{label_framwork} starts by describing the general \textbf{backend framework design}. It continues by introducing \textbf{CasADi's high level language}. Based on that it describes how a \textbf{Dynamical System} can be defined using \textbf{CasADi's framework} and how \textbf{CVODES integrator, first and second order sensitivity}   \textbf{Code Generation} is done. 
+Last but not least, it describes the the API required by all the function abovementioned.\\
+
+Section \ref{Integrator_comparation} is meant to underline the advantages of using \textbf{CVODES integrator}over the default ones offered by \textbf{Matlab} by making comparisons for multiple dynamical systems. \\
+
+We end this report with a section of conclusions and recommendations \ref{conclusions_recommandations}.
    
 \section{Problem Definition}
 \label{problem_definition}
@@ -211,18 +233,14 @@ To solve \ref{eq:ocp_QP}, the following terms, which include the evaluation of t
 
 The process of evaluation of \boldmath$ a(w_i), \nabla_w a(w_i), \nabla_w^2 a(w) \cdot \lambda $ requires the implementation of the following functions, as part of integration of \textbf{SUNDIALS}:
 
-\begin{itemize}
-  \item \boldmath$x(t;t,s,q,p)$
+\begin{enumerate}[label=\textbf{S.\arabic*}]  
+\item \label{label_forward_integration} \boldmath$x(t;t,s,q,p)$
         Standard forward integration.
-  \item \boldmath$\nabla_{w} x(t;t,s,q,p)\cdot d$
+  \item \label{label_directional_derivative} \boldmath$\nabla_{w} x(t;t,s,q,p)\cdot d$
         This is the directional derivative of $x(t;t,s,q,p)$ in the direction $d$. Multiple directions can be evaluated at the same time. The complete Jacobian can be computed by computing directional derivatives in all unit directions.
-  \item \boldmath$\nabla^2_{w} x(t;t,s,q,p) \cdot \lambda$
+  \item \label{label_Hessian} \boldmath$\nabla^2_{w} x(t;t,s,q,p) \cdot \lambda$
         Hessian of $\lambda^\top \cdot x(t;t,s,q,p)$ with respect $w$.
-\end{itemize}
-
-%\begin{align}
-%  
-%\end{align}
+\end{enumerate}
 
 Where the dimensions are:
 
@@ -235,8 +253,46 @@ Where the dimensions are:
 \end{align}
 \end{subequations}
 
+A simplified, comprehensive way to visualize this problem can be seen using Figure \ref{label_3layer_architecture} which introduces a 3 layer architecture where the first 2 ( the \textbf{OCP} and \textbf{QP} ) are provided by \textbf{MLI} whereas, the 3rd layer, is build on top of \textbf{CasADi} framework and represents the \textit{main contribution of this practical}. \\
 
-\section{CasADi}
+Long story short, solving the \textbf{OCP} ( defined in the first layer ) requires multiple \textbf{QP} queries ( introduced in layer 2 ) which in turn, requires a way to define the \textbf{Dynamical System} and to compute \ref{label_forward_integration}, \ref{label_directional_derivative} and \ref{label_Hessian}.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[node distance = 2cm, auto]
+    % Place nodes
+    \node [block] (OCP) {Optimal Control Problem};
+    
+    \node [block, below of=OCP, distance=2cm] (QP) {Quadratic Programming};
+    
+    \node [block, below of=QP, node distance=2cm] (Directional_Derivative) {Directional Derivative \ref{label_directional_derivative}  };
+    
+    \node [block, left of=Directional_Derivative, node distance=3cm] (Forward_Integrator) {Forward Integrator \ref{label_forward_integration} };
+    
+    \node [block, right of=Directional_Derivative, node distance=3cm] (Hessian) {Hessian \ref{label_Hessian} };
+    
+    % Draw edges
+    \path [line] (OCP) -- (QP);
+    \path [line] (QP) -- (Directional_Derivative);
+    \path [line] (QP) -- (Forward_Integrator);
+    \path [line] (QP) -- (Hessian);
+    %\path [line] (decide) -| node [near start] {yes} (update);
+    %\path [line] (update) |- (identify);
+    %\path [line] (decide) -- node {no}(stop);
+    %\path [line,dashed] (expert) -- (init);
+    %\path [line,dashed] (system) -- (init);
+    %\path [line,dashed] (system) |- (evaluate);
+\end{tikzpicture}
+\caption{Problem architecture}
+\label{label_3layer_architecture}
+\end{figure}
+
+\section{Framework}
+\label{label_framwork}
+
+\subsection{Framework design}
+
+\subsection{CasADi}
 \label{CasADi_section}
 
 CasADi is an open-source software tool for numerical optimization in general and optimal control (i.e. optimization involving differential equations) in particular. \cite{Andersson2018}
@@ -295,10 +351,32 @@ full(res.xf)
 A comprehensive documentation for CasADi can be accessed here: \href{https://web.casadi.org/docs/}{CasADi}.
 
 
-\section{Implementation}
-\label{implementation_section}
+\subsection{Dynamical System definition}
 
-\subsection{General application flow}
+\subparagraph{Dynamical system description}
+
+\begin{subequations}
+\begin{align}
+\dot{x}(t) &= f(t, x(t), q, p)   \\
+x(t_0) &=x_0
+\end{align}
+\end{subequations}
+
+Where:
+$t$ is the time,
+$x$ is the differential states,
+$q$ is the control( constant),
+$p$ is the parameter.
+\\
+\subparagraph{The calling Convention from Matlab} for
+\boldmath$x(t;t,s,q,p)$   
+\boldmath$\nabla_{w} x(t;t,s,q,p)\cdot d$   
+\boldmath$\nabla^2_{w} x(t;t,s,q,p) \cdot \lambda$
+        
+
+The functions are called with on input argument \textbf{inp} and return one output argument \textbf{outp}. So all function calls have the header `function outp = functionname(inp)`. Not all input attributes are always needed and not alle output attributes are always computed
+
+
 First, one must define a Dynamical System. This most be done in a separate file as part of the folder  \textit{DynamicalSystems} and it must follow the previously introduced CasADi's convention of \textbf{ODE/DAE} definition. 
 \\
 \\
@@ -332,6 +410,8 @@ sys.ode = [
     ];
 \end{lstlisting}
 
+\subsection{Code Generation}
+
 Based on the above definition of the dynamical system, the user needs to call one time, a function that generates on the fly the customized C/C++ code for the corresponding integrator, it compiles the newly generated code ( \textbf{JIT compiler} ) and returns a \textbf{Functor} that provides future access to it.
 
 The corresponding call for \textit{Lotka-Volterra} ODE would look like as follows:
@@ -352,6 +432,8 @@ The parameters of \textbf{InitODE()/InitDAE()} are as follows:
 	\item \textit{tStart} : The start time ( most of the time, it's $0$ )
 	\item \textit{OneCallTimeStepSize} : Length of one call step done by the integrator. The current CasADi's API implementation is limited to fix time-step for \textbf{SUNDIALS suite} which are build from C/C++ code generation.
 \end{itemize}
+
+
 At this point, all the prerequisites for the future calls of \textit{integrator}, \textit{sensitivity} and \textit{hessian} ( $integrate(inp)$, $integrateWSensitivies(inp)$ and \\ $integrateWSensitiviesAndHessian(inp)$ ) w.r.t the the ODE are satisfied. 
 
 Each of the calls must contain as parameter an object that contains a subset of the variables defined below:
@@ -395,33 +477,6 @@ The Figure \ref{multipleShootingImg} offers a better perspective of the computat
 
 
 
-
-
-
-\subsection{API}
-\subparagraph{Dynamical system description}
-
-\begin{subequations}
-\begin{align}
-\dot{x}(t) &= f(t, x(t), q, p)   \\
-x(t_0) &=x_0
-\end{align}
-\end{subequations}
-
-Where:
-$t$ is the time,
-$x$ is the differential states,
-$q$ is the control( constant),
-$p$ is the parameter.
-\\
-The calling Convention from Matlab for \\
-\boldmath$x(t;t,s,q,p)$   
-\boldmath$\nabla_{w} x(t;t,s,q,p)\cdot d$   
-\boldmath$\nabla^2_{w} x(t;t,s,q,p) \cdot \lambda$
-        
-
-The functions are called with on input argument \textbf{inp} and return one output argument \textbf{outp}. So all function calls have the header `function outp = functionname(inp)`. Not all input attributes are always needed and not alle output attributes are always computed
-
 \subsection{Building the integrator}
 
 \begin{itemize}
@@ -440,19 +495,12 @@ The functions are called with on input argument \textbf{inp} and return one outp
 Output $\rightarrow$ see readme
 
 
+\section{Integrator comparation}
+\label{Integrator_comparation}
 
-
-\section{Proposed Solutions}
-\section{Criteria for Assessing Solutions} \label{sec:criteria}
-This may be a modified version of your proposal depending on previously carried out research or any feedback received.  
-
-
-
-\section{Research Methodology}
-
-\section{Analysis and Interpretation}
 
 \section{Conclusions and Recommendations}
+\label{conclusions_recommandations}
 
 \input{jacobianExplained.tex}
 
