@@ -104,11 +104,11 @@ Besides providing access to \textbf{SUNDIALS suite}, \textbf{CasADi} offers a wa
 \section{Structure of the report}
 
 
-In \textit{Section} \ref{problem_definition} we start by defining the \textbf{Optimal Control problem} by spiting it using \textbf{hierarchical layer architecture}. At the end of this section, it will be clear how the \textbf{backend Framework} provided can be integrated into a general \textbf{OCP} framework.\\
+In \textit{Section} \ref{problem_definition} we start by defining the \textbf{Optimal Control problem} by spiting it using a \textbf{hierarchical layer architecture}. At the end of this section, it will be clear how the \textbf{backend Framework} provided can be integrated into a general \textbf{OCP} framework.\\
 
 
 
-\textit{Section} \ref{label_framwork} starts by describing the general \textbf{backend Framework design}. It continues by introducing \textbf{CasADi's high level language}. Based on that it describes how a \textbf{Dynamical System} can be defined using \textbf{CasADi's framework} and how \textbf{CVODES integrator, first and second order sensitivity}   \textbf{Code Generation} is done. 
+\textit{Section} \ref{label_framwork} starts by describing the general \textbf{backend Framework design} \ref{Framework_design}. It continues by introducing \textbf{CasADi's high level language}. Based on that it describes how a \textbf{Dynamical System} can be defined using \textbf{CasADi's framework} and how \textbf{CVODES integrator, first and second order sensitivity}   \textbf{Code Generation} is done. 
 Last but not least, it describes the the \textbf{API} required by all the functionalities abovementioned.\\
 
 \textit{Section} \ref{Integrator_comparation} is meant to underline the advantages of using \textbf{CVODES integrator} over the default ones offered by \textbf{Matlab} by comparing the computation time required in multiple dynamical systems scenarios. \\
@@ -263,9 +263,11 @@ A simplified, comprehensive way to visualize this problem can be seen using Figu
 	title/.style={font=\fontsize{6}{6}\color{black!50}\ttfamily},
 	typetag/.style={rectangle, draw=black!50,, font=\scriptsize\ttfamily} ]
     % Place nodes
-    \node [label=right:{ \textbf{Layer 1} }] [block] (OCP) {Optimal Control Problem};
+    \node [label=right:{ \textbf{ Layer 1} }] [block] (OCP) {Optimal Control Problem};
     
-    \node [label=right:{ \textbf{Layer 2} }] [block, below of=OCP, distance=2cm] (QP) {Quadratic Programming};
+    \node [label=right:{ \textbf{ Layer 2} }] [block, below of=OCP, distance=2cm] (QP) {Quadratic Programming};
+    
+\node [label=left:{ \textbf{MLI} }] [draw=black!200, fit={(OCP) (QP) }] (rectangle_label) {} ;
     
     \node [block, below of=QP, node distance=3cm] (Directional_Derivative) {Directional Derivative \ref{label_directional_derivative}  };
     
@@ -275,7 +277,7 @@ A simplified, comprehensive way to visualize this problem can be seen using Figu
     
     \node [block, right of=Directional_Derivative, node distance=3cm] (Hessian) {Hessian \ref{label_Hessian} };
     
-    \node [label=right:{ \textbf{ Layer 3 } }] [draw=black!200, fit={(Forward_Integrator) (Directional_Derivative)(Hessian) (Dynamical_System_Modeling) }] (rectangle_label) {} ;
+    \node [label=right:{ \textbf{ Layer 3 } }] [label=left:{ \textbf{backend} }] [draw=black!200, fit={(Forward_Integrator) (Directional_Derivative)(Hessian) (Dynamical_System_Modeling) }] (rectangle_label) {} ;
     
         
     
@@ -301,7 +303,107 @@ Long story short, solving the \textbf{OCP} ( defined by the \textbf{Layer 1} ) r
 \section{Framework}
 \label{label_framwork}
 
-\subsection{Framework design}
+\subsection{Framework Structure}
+\label{label_framework_structure}
+
+This project requires the latest version of \textbf{CasADi} framework ( which can be obtained from \cite{CasADi} ) as part of the main structure of the project under a folder called \textbf{casadi}.
+
+Alongside, the structure introduced by Figure: \ref{label_framework_folder_structure} defines the the components of the framework where:
+\begin{itemize}
+  \item \textit{DynamicalSystems} -- Is the folder containing all the \textbf{Dynamical Systems} defined as separated files using \textbf{CasADi's high level language}. 
+  \item \textit{functions} -- Is the folder containing the main functionalities of the project: \textbf{One time code generation} and the \textbf{binding functors} for calling \textbf{forward integration} as well as \textbf{first} and \textbf{second order sensitivity}.
+  \item \textit{MatlabFunc} -- Is the folder where the corresponding \textbf{Matlab Dynamical Systems} are defined used for performance comparisons with \textbf{CVODES}. 
+\end{itemize} 
+
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+	node distance = 3cm,
+	title/.style={font=\fontsize{6}{6}\color{black!50}\ttfamily},
+	typetag/.style={rectangle, draw=black!50,, font=\scriptsize\ttfamily} ]
+	
+    % Place nodes
+    
+    \node [block] (MatlabFunc) {MatlabFunc folder};
+    
+    \node [block, below of=MatlabFunc] (functions) {functions folder};
+    
+    \node [block, right of=MatlabFunc] (DynamicalSystem) {Dynamical System folder};
+    
+    \node [block, right of=functions] (CasADi) {casadi folder};
+    
+    \node [left of=MatlabFunc] (Tests) {Test files};
+    
+    \node [label=right:{ \textbf{ \textbf{main folder} } }] [draw=black!200, fit={(MatlabFunc) (functions)(DynamicalSystem) (CasADi)(Tests) }] (rectangle_label) {} ;
+    
+\end{tikzpicture}
+\caption{Framework folder structure}
+\label{label_framework_folder_structure}
+\end{figure}
+
+
+
+
+\subsection{Framework use case workflow}
+\label{label_UseCaseWorkflow}
+
+In a nutshell, the \textbf{workflow} of the project is determined by 3 steps in the following order:
+
+\begin{enumerate}
+	\item \textit{Dynamical System definition}
+	\item \textit{One time code generation}
+	\item \textit{Multiple function calls of:} \textbf{integrate()}, \textbf{integrateWSensitivies()} and \textbf{integrateWSensitiviesAndHessian()}
+\end{enumerate}
+
+  
+
+The use case \textbf{workflow} of the of the project can be summarized by Figure:\ref{label_framework_workflow}.
+
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+	node distance = 4cm,
+	title/.style={font=\fontsize{6}{6}\color{black!50}\ttfamily},
+	typetag/.style={rectangle, draw=black!50,, font=\scriptsize\ttfamily},
+	 ]
+	
+    % Place nodes
+    
+    \node [block] (DynamicalSystemDef) {Dynamical System Definition};
+    
+    \node [block, below of=DynamicalSystemDef] (egDynamicalSystem) {e.g.: testODE.m};
+    
+    
+    
+    \node [block, right of=DynamicalSystemDef] (OneTimeCodeGeneration) {One Time Code Generation};
+    
+    \node [block, below of=OneTimeCodeGeneration] (API_CodeGeneration) { initODE() InitODEWSensitites() InitODEWSensititesAndHessian()  };
+    
+    
+
+    \node [block, right of=OneTimeCodeGeneration] (FunctionCalls) {Multiple Function Calls};
+    
+    \node [block, below of=FunctionCalls] (API_FunctionsCalls) {integrate() integrateWSensitivies() integrateWSensitiviesAndHessian()};
+    
+    % Draw edges
+    \path [line] (DynamicalSystemDef) -- (OneTimeCodeGeneration);
+    \path [line] (OneTimeCodeGeneration) -- (FunctionCalls);
+    \draw[dashed, -)] (DynamicalSystemDef) -- (egDynamicalSystem);
+    \draw[dashed, -)] (OneTimeCodeGeneration) -- (API_CodeGeneration);
+    \draw[dashed, -)] (FunctionCalls) -- (API_FunctionsCalls);
+
+    
+    
+\end{tikzpicture}
+\caption{Use case workflow}
+\label{label_framework_workflow}
+\end{figure}
+
+
+
+
 
 \subsection{CasADi}
 \label{CasADi_section}
@@ -479,13 +581,14 @@ The computation process is vectorized and can also be done in parallel by defini
 
 The Figure \ref{multipleShootingImg} offers a better perspective of the computational process.
 
-\begin{figure}[h!]
-    \centering
-    \includegraphics[scale=0.25]{images/multipleShooting.png}
-    \caption{Multiple Shooting $I$ - is a fix time-step integrator call, $M$ - Number of intervals, $N$ - Number of integration steps.}
-    \label{multipleShootingImg}
-\end{figure}
-
+%%
+%\begin{figure}[h!]
+%    \centering
+%    \includegraphics[scale=0.25]{images/%multipleShooting.png}
+%    \caption{Multiple Shooting $I$ - is %a fix time-step integrator call, $M$ - %Number of intervals, $N$ - Number of %integration steps.}
+%    \label{multipleShootingImg}
+%\end{figure}
+%%
 
 
 \subsection{Building the integrator}
