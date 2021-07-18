@@ -23,6 +23,7 @@
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric, arrows}
 \usetikzlibrary{positioning,fit,calc}
+\usepackage{calc}
 
 \usepackage[colorlinks]{hyperref}
 \hypersetup{
@@ -352,7 +353,7 @@ In a nutshell, the \textbf{workflow} of the project is determined by 3 steps in 
 
 \begin{enumerate}
 	\item \textit{Dynamical System definition}
-	\item \textit{One time code generation}
+	\item \textit{One time code generation} by calling one of the fallowing functions: 
 	\item \textit{Multiple function calls of:} \textbf{integrate()}, \textbf{integrateWSensitivies()} and \textbf{integrateWSensitiviesAndHessian()}
 \end{enumerate}
 
@@ -408,14 +409,14 @@ The use case \textbf{workflow} of the of the project can be summarized by Figure
 \subsection{CasADi}
 \label{CasADi_section}
 
-CasADi is an open-source software tool for numerical optimization in general and optimal control (i.e. optimization involving differential equations) in particular. \cite{Andersson2018}
+\textbf{CasADi} is an open-source software tool for \textbf{numerical optimization} in general and \textbf{optimal control} (i.e. optimization involving differential equations) in particular. \cite{Andersson2018}
 
-The main scope of CasADi is automatic differentiation. Besides that, it has also support for ODE/DAE integration and sensitivity analysis, nonlinear programming and interfaces to other numerical tools ( \textbf{SUNDIALS suite} )
+The main scope of \textbf{CasADi} is \textbf{automatic differentiation}. Besides that, it has also support for \textbf{ODE/DAE integration} and \textbf{sensitivity analysis}, nonlinear programming and interfaces to other numerical tools ( \textbf{SUNDIALS suite} )
 
-At the core of CasADi is a self-contained symbolic framework that allows the user to construct symbolic expressions using a MATLAB inspired everything-is-a-matrix syntax, i.e. vectors are treated as n-by-1 matrices and scalars as 1-by-1 matrices. Further on, the constructed symbolical expression is used by numerical means.
+At the core of \textbf{CasADi} is a self-contained \textbf{symbolic framework} that allows the user to construct symbolic expressions using a \textbf{ Matlab} inspired everything-is-a-matrix syntax, i.e. vectors are treated as n-by-1 matrices and scalars as 1-by-1 matrices. Further on, the constructed symbolical expression is used by numerical means.
 
-The \textbf{SX} data type is used to represent matrices whose elements consist of symbolic expressions made up by a sequence of unary and binary operations.
-Below are some examples of CasADi's  API for defining symbolical expressions.
+\textbf{CasADi} symbolical framework defines multiple data types but the most relevant for this project is \textbf{SX}. The \textbf{SX} data type is used to represent \textbf{matrices} whose elements consist of symbolic expressions made up by a sequence of unary and binary operations.
+Below are some examples of \textbf{CasADi's  API} for defining \textbf{symbolical expressions}.
 
 \begin{lstlisting}
 
@@ -452,8 +453,7 @@ full(res.x)
 
 % Defining an ODE
 %   dot(a) = 1,
-%   dot(b) = a^2+b^2 = y
-%  
+%   dot(b) = a^2+b^2 = y 
 y = a^2+b^2;
 intg = integrator('intg','cvodes',struct('x',[a;b],'ode',[1;y]));
 res = intg('x0',[0.1;0.2]);
@@ -465,35 +465,22 @@ A comprehensive documentation for CasADi can be accessed here: \href{https://web
 
 
 \subsection{Dynamical System definition}
+\label{label_DynamicalSystemDefinition}
 
-\subparagraph{Dynamical system description}
+Given the \textbf{Dynamical System} described by \ref{dynamilcaSystemEq},where $t$ is the time, $x$ is the differential states, $q$ is the control (constant) and $p$ is the parameter we  are aiming for a way to use \textbf{CasADi} to define it.
 
 \begin{subequations}
+\label{dynamilcaSystemEq}
 \begin{align}
 \dot{x}(t) &= f(t, x(t), q, p)   \\
 x(t_0) &=x_0
 \end{align}
 \end{subequations}
 
-Where:
-$t$ is the time,
-$x$ is the differential states,
-$q$ is the control( constant),
-$p$ is the parameter.
-\\
-\subparagraph{The calling Convention from Matlab} for
-\boldmath$x(t;t,s,q,p)$   
-\boldmath$\nabla_{w} x(t;t,s,q,p)\cdot d$   
-\boldmath$\nabla^2_{w} x(t;t,s,q,p) \cdot \lambda$
-        
-
-The functions are called with on input argument \textbf{inp} and return one output argument \textbf{outp}. So all function calls have the header `function outp = functionname(inp)`. Not all input attributes are always needed and not alle output attributes are always computed
-
-
-First, one must define a Dynamical System. This most be done in a separate file as part of the folder  \textit{DynamicalSystems} and it must follow the previously introduced CasADi's convention of \textbf{ODE/DAE} definition. 
+This is done in a separate file as part of the folder  \textit{DynamicalSystems} and it must follow the previously introduced \textbf{CasADi's high level language} definition convention for \textbf{ODE/DAE}. 
 \\
 \\
-An example for Lotka-Volterra ODE would be:
+A more comprehensive example using \textbf{Lotka-Volterra ODE} would be:
 
 \begin{lstlisting}
 import casadi.*
@@ -525,92 +512,86 @@ sys.ode = [
 
 \subsection{Code Generation}
 
-Based on the above definition of the dynamical system, the user needs to call one time, a function that generates on the fly the customized C/C++ code for the corresponding integrator, it compiles the newly generated code ( \textbf{JIT compiler} ) and returns a \textbf{Functor} that provides future access to it.
+Based on the above definition of the dynamical system, the user needs to call \textbf{one time}, a function that \textbf{generates}, \textbf{on the fly}, the customized C/C++ code for the corresponding integrator, \textbf{compiles} the newly generated code ( \textbf{JIT compiling} ) and returns a \textbf{Functor} that provides future access to it.
 
-The corresponding call for \textit{Lotka-Volterra} ODE would look like as follows:
+The corresponding call for \textit{Lotka-Volterra ODE} defined in the file \\ \textit{lotka\_volterraCasADi.m} would look like as follows:
 
 \begin{lstlisting}
-InitODE('lotka_volterraCasADi', tStart, OneCallTimeStepSize);
+InitODE('lotka_volterraCasADi', tStart, tEnd);
 \end{lstlisting}
 
 The corresponding call dor DAE looks like as follows:
 \begin{lstlisting}
-InitDAE('DinamicalSystem',tStart,OneCallTimeStepSize);
+InitDAE('DinamicalSystem', tStart, tEnd);
 \end{lstlisting}
 
-The parameters of \textbf{InitODE()/InitDAE()} are as follows: 
+The mandatory parameters of \textbf{InitODE()/InitDAE()} are as follows: 
 
 \begin{itemize}
 	\item \textit{lotka\_volterraCasADi} : Name of the file that contain the dynamical system
 	\item \textit{tStart} : The start time ( most of the time, it's $0$ )
-	\item \textit{OneCallTimeStepSize} : Length of one call step done by the integrator. The current CasADi's API implementation is limited to fix time-step for \textbf{SUNDIALS suite} which are build from C/C++ code generation.
+	\item \textit{tEnd} : The end time of the integration interval. The current \textbf{ CasADi's code generation} is \textbf{limited to initial, fixed time-step} for \textbf{SUNDIALS suite}.
+\end{itemize}
+
+If one requires also access to the \textbf{ first} and \textbf{second order sensitivity}, one must call one of the following functions with the same list of parameters as above:
+\begin{itemize}
+	\item \textit{InitODEWSensitites}
+	\item \textit{InitODEWSensititesAndHessian}
 \end{itemize}
 
 
-At this point, all the prerequisites for the future calls of \textit{integrator}, \textit{sensitivity} and \textit{hessian} ( $integrate(inp)$, $integrateWSensitivies(inp)$ and \\ $integrateWSensitiviesAndHessian(inp)$ ) w.r.t the the ODE are satisfied. 
 
-Each of the calls must contain as parameter an object that contains a subset of the variables defined below:
+At this point, all the prerequisites for the future calls of \textit{integrator}, \textit{sensitivity} and \textit{hessian} ( $integrate(inp)$, $integrateWSensitivies(inp)$ and \\ $integrateWSensitiviesAndHessian(inp)$ ) w.r.t. the ODE are satisfied as they are the result of the automatic generation. These can be access using the \textbf{global variable: s2m}. Another important aspect is that one of the optional parameter \textbf{nrThreads/threads} can be used to parallelize the process by explicitly defining the \textbf{ number of threads} used. \\ 
 
-\begin{itemize}
-	\item $inp.N$ :  Number of integration steps in each interval from multiple shooting. 
-	\item $inp.M$ : Number of intervals. 
+Each of the calls must contain, as parameter, an object that contains a subset of the variables defined below:
+
+\begin{itemize} 
+	\item $inp.M$ : Number of  multiple shooting intervals. 
 
 %inp.sd -- initial value for differential states $x_0$
 	\item $inp.sd$ : Initial value for differential states for each multiple shooting interval.
 	
 %inp.q -- constant control for integration horizon
-	\item $inp.q$ : A vector of controls used by each integrator call with size: $inp.N \cdot inp.M$
+	\item $inp.q$ : A vector of controls used by each integrator call with size: $inp.M$
 
 %inp.p -- local parameters
 	\item $inp.p$ : The values of the parameters in the same order it was defined previously in the dynamical system.
 
 %must be added by the user/extracted from ODE... etc
 
-	\item $inp.nx$ : The size of state X.
+	\item $inp.nx$ : The size of $x$.
 	\item $inp.nq$ : The number of control parameters.
 	\item $inp.np$ : The number of parameters.
-	\item $inp.sensdirs$ : The sensitivity directions in form of matrix.
+	\item $inp.fwd\_x0$ : The sensitivity directions in form of matrix containing only the components corresponding to $x_0$
+	\item $inp.fwd\_p$ : The sensitivity directions in form of matrix containing only the components corresponding to $parameters$
+	\item $inp.nr\_sensdirs$ : The number of sensitivity directions.
 	\item $inp.lambda$ : The adjoint sensitivity direction
 	\item $inp.threads$ : The number of threads for the thread pool used by the integrator
 \end{itemize}
 
-For complete examples please check the following files: $test\_integrate.m$, $test\_integrateWSensitivies.m$ and
+For complete examples (\textit{input/output}) please check the following files: $test\_integrate.m$, $test\_integrateWSensitivies.m$ and \\
 $test\_integrateWSensitiviesAndHessia.m$
 
-The computation process is vectorized and can also be done in parallel by defining the number of threads. For this, special attention must be given to the way the initialization process is handled.
 
-The Figure \ref{multipleShootingImg} offers a better perspective of the computational process.
-
-%%
-%\begin{figure}[h!]
-%    \centering
-%    \includegraphics[scale=0.25]{images/%multipleShooting.png}
-%    \caption{Multiple Shooting $I$ - is %a fix time-step integrator call, $M$ - %Number of intervals, $N$ - Number of %integration steps.}
-%    \label{multipleShootingImg}
-%\end{figure}
-%%
-
-
-\subsection{Building the integrator}
-
-\begin{itemize}
-    \item \texttt{inp.thoriz} Integration horizon in the form of a $2 \times 1$ matrix. At the beginning  this can be assumed to be [0,1]. Later time transformation.
-    \item \texttt{inp.sd} Initial value for differential states 
-    \item \texttt{inp.sa} Initial value for algebraic states $\rightarrow$ ignore atm
-    \item \texttt{inp.q } Control parameter
-    \item \texttt{inp.p} Model parameter
-    \item \texttt{inp.sensdirs} Matrix of directional derivates of dimension $1+n_x+n_q+n_p \times n_{sens}$, where $n_{sens}$ is the number of derivates.
-         Order of directions: [t, x, q, p]. $t$ can be assumed to be 0.
-    \item \texttt{inp.lambda} Adjoint directional derivatives. 
-           Matrix of dimension $n_x \times n_{adj}$, where $n_{adj}$ is the number of adjoint derivates.
-\end{itemize}
-
-
-Output $\rightarrow$ see readme
 
 
 \section{Integrator comparation}
 \label{Integrator_comparation}
+
+Figure \ref{label_table}
+Figure \ref{label_chart}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[scale=0.75]{images/table.png}
+    \label{label_table}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[scale=0.8]{images/chart.png}
+    \label{label_chart}
+\end{figure}
 
 
 \section{Conclusions and Recommendations}
