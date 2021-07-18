@@ -65,7 +65,7 @@ sensdirs2 = diag([1:7]);
 
 %directional matrix sensdirs1
 fwd = sensdirs1;
-%split between number of componentx of x_0 and number of components of
+%split between number of components of x_0 and number of components of
 %the parameters
 inp.fwd_x0 = fwd(:,1:inp.nx);
 inp.fwd_p = fwd(:,inp.nx+1:inp.nx+inp.np);
@@ -87,7 +87,7 @@ inp.nr_sensdirs = 2;
 % set the number of threads for the thread pool used by the integrator
 % ( I think it can also be done in a distributed way too... but I'm not
 % quite sure... )
-inp.threads = 1;
+%inp.threads = 1;
 
 %inp.lambda -- adjoint sensitivity direction
  inp.lambda = [1;2];

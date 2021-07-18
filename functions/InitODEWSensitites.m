@@ -6,6 +6,9 @@ function InitODEWSensitites( example_name, t0, tf, shooting_intervals, nrThreads
 %   t0,tf                       -> initial and final time for the integrator
 %                               -> default: [0,1]
 %
+%   nrThreads                   -> number of threads
+%                               -> default: 1
+%
 %   shooting_intervals          -> number of shooting intervals
 %                               -> default: 1
 %
