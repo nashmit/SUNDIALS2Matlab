@@ -69,7 +69,7 @@ Heidelberg University \\
 Heidelberg, Germany \\
 horea.caramizaru@stud.uni-heidelberg.de
 }
-\date{20/6/2021}
+\date{18-July-2021}
 
 
 % make the title area
@@ -578,26 +578,31 @@ $test\_integrateWSensitiviesAndHessia.m$
 \section{Integrator comparation}
 \label{Integrator_comparation}
 
-Figure \ref{label_table}
-Figure \ref{label_chart}
+ The development of this project is based on the \textit{hypothesis} that a \textbf{c native backend integrator} exposed in \textbf{Matlab} is faster than the \textbf{Matlab native} one. To see how well the \textbf{CVODES integrator} works, a set of tests was been developed. For comparison, the comprehensive list can be checked in Figure:\ref{label_table}.
 
 \begin{figure}[h!]
     \centering
-    \includegraphics[scale=0.75]{images/table.png}
+    \includegraphics[scale=0.70]{images/table.png}
+    \caption{\textbf{CVODES integrator} \textit{vs.} \textbf{Matlab native integrator}}
     \label{label_table}
 \end{figure}
+
+From Figure:\ref{label_chart} one can observe that the \textbf{CVODES integrator} tend to be, on average, $2$ up to $3$ times faster. For longer integration time, an exponential computation improvement can be observed. These comparisons don't take into consideration that, most of the time, multiple integration intervals are computed within a \textbf{multiple shooting} problem which can be \textbf{parallelized for free} based on the provided \textbf{ backend Framework} implementation and can also  \textbf{improve the computation time significantly}.
 
 \begin{figure}[h!]
     \centering
     \includegraphics[scale=0.8]{images/chart.png}
+    \caption{ \textbf{Integration time} \textit{vs.} \textbf{Computation time}}
     \label{label_chart}
 \end{figure}
 
 
 \section{Conclusions and Recommendations}
 \label{conclusions_recommandations}
+The next natural step for this project will be to integrate it into \textbf{MLI project}. To this end, the current provided \textit{API} should make this process smooth enough. Current implementation contains the complete necessary backend for the initial \textbf{ODE} problem  definition \ref{problem_definition}. On top of that, it contains also the necessary implementation for \textbf{DAE} and it also partially implements the \textit{API}. The remaining \textbf{first} and \textbf{second order} sensitivity functionality should be straightforward to implemented based on the counterpart \textbf{ODE} implementation.
+More work should be putted into exposing more optional configuration parameters for the \textbf{code generation API}.
 
-\input{jacobianExplained.tex}
+%\input{jacobianExplained.tex}
 
 
 
