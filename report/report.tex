@@ -24,6 +24,7 @@
 \usetikzlibrary{shapes.geometric, arrows}
 \usetikzlibrary{positioning,fit,calc}
 \usepackage{calc}
+\usepackage{caption}
 
 \usepackage[colorlinks]{hyperref}
 \hypersetup{
@@ -63,7 +64,7 @@
 
 % author names and affiliations
 
-\author{MSc. Horea-Alexandru C\u{a}r\u{a}mizaru \\
+\author{Horea-Alexandru C\u{a}r\u{a}mizaru \\
 MSc. Scientific Computing\\
 Heidelberg University \\
 Heidelberg, Germany \\
@@ -82,9 +83,12 @@ horea.caramizaru@stud.uni-heidelberg.de
 %\IEEEpeerreviewmaketitle
 \begin{abstract}
 
-The main scope of this practical is to expose the interfaces of \textbf{IDAS/CVODES} integrators from the \textbf{SUNDIALS suite} \cite{hindmarsh2005sundials} into \textbf{MATLAB}. To this end, the implementation provides the mean to define a \textbf{Dynamical System}, to computer \textbf{forward integration} as well as \textbf{first and second order sensitivity} in a \textbf{ parallelized} way. All of these are done by \textbf{automatically C++ code generation} of the \textbf{integrator} and of the \textbf{sensitivity} by using a \textbf{high level language} to define a \textbf{Dynamical System} on top of \textbf{CasADi}, which closely resembles a \textbf{symbolical framework} but without having the corresponding disadvantages.
+The main scope of this practical is to expose the interfaces of \textbf{IDAS/CVODES} integrators from the \textbf{SUNDIALS suite} \cite{hindmarsh2005sundials} into \textbf{Matlab}. To this end, the implementation provides the means to define a \textbf{dynamical system}, to compute \textbf{forward integration} as well as \textbf{first and second order sensitivity} in a \textbf{parallelized} way. All of these are done by \textbf{automatically C/C++ code generation} of the \textbf{integrator} and of the \textbf{sensitivity} by using a \textbf{high level language} to define a \textbf{dynamical system} on top of \textbf{CasADi}, which closely resembles a \textbf{symbolical framework} without having the corresponding disadvantages.
 
-Alongside with this report, a full implementation can be found here: \href{https://github.com/nashmit/SUNDIALS2Matlab}{SUNDIALS2Matlab}
+Alongside this report, a complete implementation can be found here: \href{https://github.com/nashmit/SUNDIALS2Matlab}{SUNDIALS2Matlab}.
+\\
+\\
+\textbf{\textit{Index Terms:}} \textbf{IDAS, CVODES, SUNDIALS suite, dynamical system, forward integration, sensitivity, parallelization, code generation, CasADi, symbolical framework.}
 
 \end{abstract}
 
@@ -93,28 +97,30 @@ Alongside with this report, a full implementation can be found here: \href{https
 
 
 \section{Introduction}
-The main task of this practical was to research 2 ways of integrating \textbf{SUNDIALS suite} as part of \textbf{MLI}  project and also to provide the necessary  \textbf{backend Framework}.
+The main task of this practical was to research 2 ways of integrating \textbf{SUNDIALS suite} as part of \textbf{MLI}  project and also to provide the necessary  \textbf{backend framework}.
 
-The 2 possible libraries considered for this task were: \textbf{CasADi} \cite{Andersson2018} and \textbf{AMICI} \cite{frohlich2020amici} both of them providing an automatic way of exposing \textbf{SUNDIALS} c/c++ code integrators to dynamical languages like \textbf{Python} and \textbf{Matlab}.
+The 2 possible libraries considered for this task were: \textbf{CasADi} \cite{Andersson2018} and \textbf{AMICI} \cite{frohlich2020amici} both of them providing an automatic way of exposing \textbf{SUNDIALS} C/C++ code integrators to dynamical languages like \textbf{Python} and \textbf{Matlab}.
 
-The final decision of using \textbf{CasADi} was taken after multiple testing on each of them and was based on the fact that is a better integrated project with a comprehensive documentation and a wider community. 
+The final decision of using \textbf{CasADi} was taken after multiple testing on each of them and was based on the fact that is a better-integrated project with comprehensive documentation and a wider community. 
 
 
-Besides providing access to \textbf{SUNDIALS suite}, \textbf{CasADi} offers a way of defining \textbf{Dynamical Systems} using a \textbf{high level language} as well as doing \textbf{C++ code generation} at run time ( \textbf{JIT} ) starting from a \textbf{symbolical representation} of the problem and general means to \textbf{parallelize} the computation.
+Besides providing access to \textbf{SUNDIALS suite}, \textbf{CasADi} offers a way of defining the \textbf{dynamical systems} using a \textbf{high level language} as well as \textbf{C/C++ code generation} of the \textbf{integrator} and \textbf{sensitivity} at run time ( \textbf{JIT} ) starting from a \textbf{symbolical representation} of the problem and also, general means to \textbf{parallelize} the computation.
  
 \section{Structure of the report}
 
 
-In \textit{Section} \ref{problem_definition} we start by defining the \textbf{Optimal Control problem} by spiting it using a \textbf{hierarchical layer architecture}. At the end of this section, it will be clear how the \textbf{backend Framework} provided can be integrated into a general \textbf{OCP} framework.\\
+\textit{Section} \ref{problem_definition}, starts by defining the \textbf{Optimal Control problem} by splitting it using a \textbf{hierarchical layer architecture}. At the end of this section, it will be clear how the \textbf{backend framework} provided can be integrated into a general \textbf{OCP} framework.\\
 
 
 
-\textit{Section} \ref{label_framwork} starts by describing the general \textbf{backend Framework design} \ref{Framework_design}. It continues by introducing \textbf{CasADi's high level language}. Based on that it describes how a \textbf{Dynamical System} can be defined using \textbf{CasADi's framework} and how \textbf{CVODES integrator, first and second order sensitivity}   \textbf{Code Generation} is done. 
-Last but not least, it describes the the \textbf{API} required by all the functionalities abovementioned.\\
+\textit{Section} \ref{label_framwork}, starts by describing the general \textbf{backend framework design} \ref{label_framework_structure}. In subsection \ref{label_UseCaseWorkflow}, the general \textbf{workflow} is introduced. It continues then by introducing \textbf{CasADi's high level language} in subsection \ref{CasADi_section}. Based on that, it is afterwords described how a \textbf{dynamical system} can be defined using \textbf{CasADi's framework} \ref{label_DynamicalSystemDefinition} and how \textbf{CVODES integrator, first and second order sensitivity} \textbf{Code Generation} is done \ref{label_code_generation}. 
+%Last but not least, this section describes how the \textbf{sensitivity computation}, subsection \ref{label_sensitivity_computation}, is done as this process is more involved.\\
+\\
 
 \textit{Section} \ref{Integrator_comparation} is meant to underline the advantages of using \textbf{CVODES integrator} over the default ones offered by \textbf{Matlab} by comparing the computation time required in multiple dynamical systems scenarios. \\
+\\
 
-We end this report with a section of conclusions and recommendations \ref{conclusions_recommandations} and possible feature extensions of the provided \textbf{backend Framework}.
+\textit{Section} \ref{conclusions_recommandations} ends this report with a section of \textbf{Conclusions and Recommendations} and possible feature extensions of the provided \textbf{backend framework}.
    
 \section{Problem Definition}
 \label{problem_definition}
@@ -133,11 +139,12 @@ The problem that needs to be solved regards the following OCP ( Optimal Control 
 	\end{alignat}
 \end{subequations}
 
-To solve \ref{eq:ocp_continuous} numerically, we are using a discretized version by introducing the following multiple shooting variables: $s_0, \cdots, s_N$ $q_0, \cdots, q_N$
+To solve Eq:\ref{eq:ocp_continuous} numerically, we are using a discretized version by introducing the following multiple shooting variables: $s_0, \cdots, s_N$ $q_0, \cdots, q_N$ for Eq:\ref{eq:ocp_discret}.
 
 
 \begin{subequations}
-	\begin{alignat}{3} \label{eq:ocp_discret}
+\label{eq:ocp_discret}
+	\begin{alignat}{3} 
 	&\underset{x(\cdot), u(\cdot) }{\text{min}} \qquad \mathrlap{\Phi(S_N)}	\\
 	&\qquad \text{s.t.}\qquad	&  s_{i+1}	&= x(t_{i+1}; t_i, s_i,q_i,p)	& \ \ i &= 0,...,N-1		\\
 	&				& s_0	    &= x_0							                                                      \\
@@ -146,7 +153,7 @@ To solve \ref{eq:ocp_continuous} numerically, we are using a discretized version
 	\end{alignat}
 \end{subequations}
 
-where $x(t; t_0, s,q,p)$ is the solution of \ref{eq:IVP}
+where $x(t; t_0, s,q,p)$ is the solution of Eq:\ref{eq:IVP}.
 \begin{subequations}
 \label{eq:IVP}
 \begin{align}  
@@ -176,7 +183,7 @@ Next, we define the primal variables as $w = (s,q)$ and we introduce the followi
                    q- q^{up}}
 \end{align}
 
-Based on \ref{eq:equality} and \ref{eq:inequality} one can write the OCP in a more compact form:
+Based on Eq:\ref{eq:equality} and Eq:\ref{eq:inequality} one can write the OCP in a more compact form:
 
 \begin{subequations}
 	\label{eq:OCP_discret_compact}
@@ -187,7 +194,7 @@ Based on \ref{eq:equality} and \ref{eq:inequality} one can write the OCP in a mo
 	\end{alignat}
 \end{subequations}
 
-For \ref{eq:OCP_discret_compact} the Lagrange function and its derivatives at point $(w,\lambda, \mu)$ are defined as follows:
+For Eq:\ref{eq:OCP_discret_compact} the Lagrange function and its derivatives at point $(w,\lambda, \mu)$ are defined as follows:
 
 \begin{align}
   \mathcal{L}(w,\lambda, \mu) &= \Phi(w) - \lambda ^\top a(w)-  \mu^\top b(w) \\
@@ -204,14 +211,10 @@ For \ref{eq:OCP_discret_compact} the Lagrange function and its derivatives at po
     \nabla_w b(w)^\top
   }
 \end{align}
-\\
-\\
-\\
-\\
-\\
-\\
-We want to be able to solve:
+
+We want to be able to solve Eq:\ref{eq:GradientLagrange}.
 \begin{align}
+\label{eq:GradientLagrange}
 \nabla \mathcal{L}(w,\lambda, \mu) = 0.
 \end{align}
 
@@ -230,7 +233,7 @@ Equivalently, the following QP ( Quadratic Programming ) needs to be solved:
 	\end{alignat}
 \end{subequations}
 
-To solve \ref{eq:ocp_QP}, the following terms, which include the evaluation of the dynamical system, must be evaluated: $ a(w_i), \nabla_w a(w_i), \nabla_w^2 a(w)\cdot \lambda $
+To solve Eq:\ref{eq:ocp_QP}, the following terms, which include the evaluation of the dynamical system, must be evaluated: $ a(w_i), \nabla_w a(w_i), \nabla_w^2 a(w)\cdot \lambda $
 \\
 
 The process of evaluation of \boldmath$ a(w_i), \nabla_w a(w_i), \nabla_w^2 a(w) \cdot \lambda $ requires the implementation of the following functions, as part of integration of \textbf{SUNDIALS}:
@@ -255,7 +258,7 @@ Where the dimensions are:
 \end{align}
 \end{subequations}
 
-A simplified, comprehensive way to visualize this problem can be seen using Figure \ref{label_3layer_architecture} which introduces a 3 layer architecture where the first 2 ( the \textbf{OCP} and \textbf{QP} ) are provided by \textbf{MLI} whereas, the 3rd layer, introduces the \textbf{backend Framework} which is build on top of \textbf{CasADi} and represents the \textit{main contribution of this practical}. \\
+A simplified, comprehensive way to visualize this problem can be seen using Figure:\ref{label_3layer_architecture} which introduces \textbf{a 3 layer architecture} where the first 2 ( the \textbf{OCP} and \textbf{QP} ) are provided by \textbf{MLI} whereas, the 3rd layer, introduces the \textbf{backend framework} which is build on top of \textbf{CasADi} and represents the \textit{main contribution of this practical}. \\
 
 \begin{figure}
 \centering
@@ -278,7 +281,7 @@ A simplified, comprehensive way to visualize this problem can be seen using Figu
     
     \node [block, right of=Directional_Derivative, node distance=3cm] (Hessian) {Hessian \ref{label_Hessian} };
     
-    \node [label=right:{ \textbf{ Layer 3 } }] [label=left:{ \textbf{backend} }] [draw=black!200, fit={(Forward_Integrator) (Directional_Derivative)(Hessian) (Dynamical_System_Modeling) }] (rectangle_label) {} ;
+    \node [label=right:{ \textbf{ Layer 3 } }] [label=left:{ \textbf{backend}}] [draw=black!200, fit={(Forward_Integrator) (Directional_Derivative)(Hessian) (Dynamical_System_Modeling) }] (rectangle_label) {} ;
     
         
     
@@ -299,7 +302,7 @@ A simplified, comprehensive way to visualize this problem can be seen using Figu
 \label{label_3layer_architecture}
 \end{figure}
 
-Long story short, solving the \textbf{OCP} ( defined by the \textbf{Layer 1} ) requires multiple \textbf{QP} queries ( introduced by the \textbf{Layer 2} ) which in turn, requires a way to define the \textbf{Dynamical System} and to compute \ref{label_forward_integration}, \ref{label_directional_derivative} and \ref{label_Hessian} ( exposed by \textbf{Layer 3} ).
+Long story short, solving the \textbf{OCP} ( defined by the \textbf{Layer 1} ) requires multiple \textbf{QP} queries ( introduced by the \textbf{Layer 2} ) which in turn, requires a way to define the \textbf{dynamical system} and to compute \ref{label_forward_integration}, \ref{label_directional_derivative} and \ref{label_Hessian} ( exposed by \textbf{Layer 3} ).
 
 \section{Framework}
 \label{label_framwork}
@@ -311,9 +314,9 @@ This project requires the latest version of \textbf{CasADi} framework ( which ca
 
 Alongside, the structure introduced by Figure: \ref{label_framework_folder_structure} defines the the components of the framework where:
 \begin{itemize}
-  \item \textit{DynamicalSystems} -- Is the folder containing all the \textbf{Dynamical Systems} defined as separated files using \textbf{CasADi's high level language}. 
+  \item \textit{DynamicalSystems} -- Is the folder containing all the \textbf{dynamical systems} defined as separated files using \textbf{CasADi's high level language}. 
   \item \textit{functions} -- Is the folder containing the main functionalities of the project: \textbf{One time code generation} and the \textbf{binding functors} for calling \textbf{forward integration} as well as \textbf{first} and \textbf{second order sensitivity}.
-  \item \textit{MatlabFunc} -- Is the folder where the corresponding \textbf{Matlab Dynamical Systems} are defined used for performance comparisons with \textbf{CVODES}. 
+  \item \textit{MatlabFunc} -- Is the folder where the corresponding \textbf{Matlab dynamical systems} are defined used for performance comparisons with \textbf{CVODES}. 
 \end{itemize} 
 
 
@@ -349,17 +352,19 @@ Alongside, the structure introduced by Figure: \ref{label_framework_folder_struc
 \subsection{Framework use case workflow}
 \label{label_UseCaseWorkflow}
 
-In a nutshell, the \textbf{workflow} of the project is determined by 3 steps in the following order:
+In a nutshell, the \textbf{workflow} of the project is determined by 3 steps, operated in the following order:
 
 \begin{enumerate}
-	\item \textit{Dynamical System definition}
-	\item \textit{One time code generation} by calling one of the fallowing functions: 
+	\item \textit{Dynamical System definition:} Definition of the problem using a high level language.
+	\item \textit{One time code generation:} By calling one of the fallowing functions: \textbf{initODE()}, \textbf{InitODEWSensitites()} or \textbf{ InitODEWSensititesAndHessian()}
 	\item \textit{Multiple function calls of:} \textbf{integrate()}, \textbf{integrateWSensitivies()} and \textbf{integrateWSensitiviesAndHessian()}
 \end{enumerate}
 
   
 
-The use case \textbf{workflow} of the of the project can be summarized by Figure:\ref{label_framework_workflow}.
+The use case \textbf{workflow} of the project is summarized by Figure:\ref{label_framework_workflow}.
+\\
+\\
 
 
 \begin{figure}[h]
@@ -404,8 +409,6 @@ The use case \textbf{workflow} of the of the project can be summarized by Figure
 
 
 
-
-
 \subsection{CasADi}
 \label{CasADi_section}
 
@@ -413,9 +416,9 @@ The use case \textbf{workflow} of the of the project can be summarized by Figure
 
 The main scope of \textbf{CasADi} is \textbf{automatic differentiation}. Besides that, it has also support for \textbf{ODE/DAE integration} and \textbf{sensitivity analysis}, nonlinear programming and interfaces to other numerical tools ( \textbf{SUNDIALS suite} )
 
-At the core of \textbf{CasADi} is a self-contained \textbf{symbolic framework} that allows the user to construct symbolic expressions using a \textbf{ Matlab} inspired everything-is-a-matrix syntax, i.e. vectors are treated as n-by-1 matrices and scalars as 1-by-1 matrices. Further on, the constructed symbolical expression is used by numerical means.
+At the core of \textbf{CasADi} is a self-contained \textbf{symbolic framework} that allows the user to construct symbolic expressions using a \textbf{Matlab} inspired everything-is-a-matrix syntax, i.e. vectors are treated as n-by-1 matrices and scalars as 1-by-1 matrices. Further on, the constructed symbolical expression is used by numerical means.
 
-\textbf{CasADi} symbolical framework defines multiple data types but the most relevant for this project is \textbf{SX}. The \textbf{SX} data type is used to represent \textbf{matrices} whose elements consist of symbolic expressions made up by a sequence of unary and binary operations.
+\textbf{CasADi} symbolical framework defines multiple data types but the most relevant for this project is \textbf{SX} which is used to represent \textbf{matrices} whose elements consist of symbolic expressions made up by a sequence of unary and binary operations.
 Below are some examples of \textbf{CasADi's  API} for defining \textbf{symbolical expressions}.
 
 \begin{lstlisting}
@@ -429,12 +432,12 @@ J = jacobian(sin(a),a);
 %Computing the Hessian
 H = hessian([a;b],[a;b]);
 
-% Function with two scalar inputs, one output.
+% Function with two scalar inputs, one output. It generates a Functor.
 x = a^2+b^2;
 f = Function('f',{a,b},{x});
 x_res = f(2,3);
 
-% Function with one vector input, one output.
+% Function with one vector input, one output. It generates a Functor.
 x = a^2+b^2;
 f = Function('f',{[a;b]},{x});
 x_res = f([2;3]);
@@ -467,7 +470,7 @@ A comprehensive documentation for CasADi can be accessed here: \href{https://web
 \subsection{Dynamical System definition}
 \label{label_DynamicalSystemDefinition}
 
-Given the \textbf{Dynamical System} described by \ref{dynamilcaSystemEq},where $t$ is the time, $x$ is the differential states, $q$ is the control (constant) and $p$ is the parameter we  are aiming for a way to use \textbf{CasADi} to define it.
+Given the \textbf{dynamical system} described by Eq:\ref{dynamilcaSystemEq}, where $t$ is the time, $x$ is the differential states, $q$ is the control (constant) and $p$ is the parameter we  are aiming for a way to use \textbf{CasADi} to define it.
 
 \begin{subequations}
 \label{dynamilcaSystemEq}
@@ -511,9 +514,11 @@ sys.ode = [
 \end{lstlisting}
 
 \subsection{Code Generation}
+\label{label_code_generation}
 
-Based on the above definition of the dynamical system, the user needs to call \textbf{one time}, a function that \textbf{generates}, \textbf{on the fly}, the customized C/C++ code for the corresponding integrator, \textbf{compiles} the newly generated code ( \textbf{JIT compiling} ) and returns a \textbf{Functor} that provides future access to it.
-
+Based on the above definition of the dynamical system, the user needs to call \textbf{one time}, a function that \textbf{generates}, \textbf{on the fly}, the customized C/C++ code for the corresponding integrator, \textbf{compiles} the newly generated code ( \textbf{JIT compiling} ) and returns a \textbf{Functor} that provides future access to the \textbf{forward integrator} and/or \textbf{sensitivity computation}.
+\\
+\\
 The corresponding call for \textit{Lotka-Volterra ODE} defined in the file \\ \textit{lotka\_volterraCasADi.m} would look like as follows:
 
 \begin{lstlisting}
@@ -530,7 +535,7 @@ The mandatory parameters of \textbf{InitODE()/InitDAE()} are as follows:
 \begin{itemize}
 	\item \textit{lotka\_volterraCasADi} : Name of the file that contain the dynamical system
 	\item \textit{tStart} : The start time ( most of the time, it's $0$ )
-	\item \textit{tEnd} : The end time of the integration interval. The current \textbf{ CasADi's code generation} is \textbf{limited to initial, fixed time-step} for \textbf{SUNDIALS suite}.
+	\item \textit{tEnd} : The end time of the integration interval. The current \textbf{ CasADi's code generation Matlab API} is \textbf{limited to an initial definition at compile time of the time interval} for \textbf{SUNDIALS suite}.
 \end{itemize}
 
 If one requires also access to the \textbf{ first} and \textbf{second order sensitivity}, one must call one of the following functions with the same list of parameters as above:
@@ -540,13 +545,12 @@ If one requires also access to the \textbf{ first} and \textbf{second order sens
 \end{itemize}
 
 
-
-At this point, all the prerequisites for the future calls of \textit{integrator}, \textit{sensitivity} and \textit{hessian} ( $integrate(inp)$, $integrateWSensitivies(inp)$ and \\ $integrateWSensitiviesAndHessian(inp)$ ) w.r.t. the ODE are satisfied as they are the result of the automatic generation. These can be access using the \textbf{global variable: s2m}. Another important aspect is that one of the optional parameter \textbf{nrThreads/threads} can be used to parallelize the process by explicitly defining the \textbf{ number of threads} used. \\ 
+At this point, all the prerequisites for the future calls of \textit{integrator}, \textit{sensitivity} and \textit{hessian} ( $integrate(inp)$, $integrateWSensitivies(inp)$ and  $integrateWSensitiviesAndHessian(inp)$ ) w.r.t. the ODE are satisfied as they are the result of the automatic generation. These can be access using the \textbf{global variable: s2m}. Another important aspect is that one of the optional parameter \textbf{nrThreads/threads} can be used to parallelize the process by explicitly defining the \textbf{ number of threads} used. \\ 
 
 Each of the calls must contain, as parameter, an object that contains a subset of the variables defined below:
 
 \begin{itemize} 
-	\item $inp.M$ : Number of  multiple shooting intervals. 
+	\item $inp.M$ : Number of  multiple shooting intervals.
 
 %inp.sd -- initial value for differential states $x_0$
 	\item $inp.sd$ : Initial value for differential states for each multiple shooting interval.
@@ -562,32 +566,84 @@ Each of the calls must contain, as parameter, an object that contains a subset o
 	\item $inp.nx$ : The size of $x$.
 	\item $inp.nq$ : The number of control parameters.
 	\item $inp.np$ : The number of parameters.
-	\item $inp.fwd\_x0$ : The sensitivity directions in form of matrix containing only the components corresponding to $x_0$
-	\item $inp.fwd\_p$ : The sensitivity directions in form of matrix containing only the components corresponding to $parameters$
+	\item $inp.fwd\_x0$ : The sensitivity directions in form of matrix containing only the components corresponding to $x_0$.
+	\item $inp.fwd\_p$ : The sensitivity directions in form of matrix containing only the components corresponding to $parameters$.
 	\item $inp.nr\_sensdirs$ : The number of sensitivity directions.
-	\item $inp.lambda$ : The adjoint sensitivity direction
-	\item $inp.threads$ : The number of threads for the thread pool used by the integrator
+	\item $inp.lambda$ : The adjoint sensitivity direction.
+	\item $inp.threads$ : The number of threads for the thread pool used by the integrator.
 \end{itemize}
 
 For complete examples (\textit{input/output}) please check the following files: $test\_integrate.m$, $test\_integrateWSensitivies.m$ and \\
 $test\_integrateWSensitiviesAndHessia.m$
 
+\iffalse
+
+\subsection{Sensitivity computation}
+
+\label{label_sensitivity_computation}
+
+Due to a more involved process of extracting the sensitivity, in the fallowing section we are going to describe the computational procedure. For this, we are going to use \textbf{Lotka-Volterra} dynamical system described into \textit{lotka\_volterraCasADi.m} as an example.
+
+\paragraph{First order sensitivity}
+
+
+\begin{itemize}
+	\item $M$ \textbf{shootings}
+	\item $nx=2$ \textbf{state space size}
+	\item $nq=1$ \textbf{number of control parameters}
+	\item $np=4$ \textbf{number of normal parameters}
+	\item $nr\_sensdirs=2$ \textbf{Number of sensitivity directions}
+\end{itemize}
+
+and sensdirs1: equation \ref{eq_sensdirs1} and sensdirs2: equation \ref{eq_sensdirs2} ( \textbf{sensitivity directions in form of matrix}:
+
+\begin{equation}
+\label{eq_sensdirs1}
+\begin{pmatrix}
+1 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 1 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 1 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & 1 & 0 & 0 & 0\\
+0 & 0 & 0 & 0 & 1 & 0 & 0\\
+0 & 0 & 0 & 0 & 0 & 1 & 0\\
+0 & 0 & 0 & 0 & 0 & 0 & 1\\
+\end{pmatrix}
+\end{equation}
+
+\begin{equation}
+\label{eq_sensdirs2}
+\begin{pmatrix}
+1 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 2 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 3 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & 4 & 0 & 0 & 0\\
+0 & 0 & 0 & 0 & 5 & 0 & 0\\
+0 & 0 & 0 & 0 & 0 & 6 & 0\\
+0 & 0 & 0 & 0 & 0 & 0 & 7\\
+\end{pmatrix}
+\end{equation}
+
+\fi
 
 
 
-\section{Integrator comparation}
+
+
+\section{Integrators comparison}
 \label{Integrator_comparation}
 
- The development of this project is based on the \textit{hypothesis} that a \textbf{c native backend integrator} exposed in \textbf{Matlab} is faster than the \textbf{Matlab native} one. To see how well the \textbf{CVODES integrator} works, a set of tests was been developed. For comparison, the comprehensive list can be checked in Figure:\ref{label_table}.
+ The development of this project is based on the \textit{hypothesis} that a \textbf{native C/C++ integrator}, exposed into \textbf{Matlab}, is faster than the \textbf{Matlab} counterpart. To see how well the \textbf{CVODES integrator} works, a set of tests were developed. For comparison, the complete list can be checked in Figure:\ref{label_table}.
 
 \begin{figure}[h!]
     \centering
+    \captionsetup{justification=centering}
     \includegraphics[scale=0.70]{images/table.png}
-    \caption{\textbf{CVODES integrator} \textit{vs.} \textbf{Matlab native integrator}}
+    \caption{\textbf{CVODES integrator} \textit{vs.} \textbf{Matlab native integrator}, \protect\linebreak
+        Intel i7-6500U CPU@2.5GHz 8GB RAM, Matlab R2020a}
     \label{label_table}
 \end{figure}
 
-From Figure:\ref{label_chart} one can observe that the \textbf{CVODES integrator} tend to be, on average, $2$ up to $3$ times faster. For longer integration time, an exponential computation improvement can be observed. These comparisons don't take into consideration that, most of the time, multiple integration intervals are computed within a \textbf{multiple shooting} problem which can be \textbf{parallelized for free} based on the provided \textbf{ backend Framework} implementation and can also  \textbf{improve the computation time significantly}.
+From Figure:\ref{label_chart} one can observe that the \textbf{CVODES integrator} tend to be, on average, $2$ up to $3$ times faster. For longer integration time, an exponential computation improvement can be observed. This comparison doesn't take into consideration that, most of the time, multiple integration intervals are computed within a \textbf{multiple shooting approach} which can be \textbf{parallelized for free} based on the provided \textbf{backend framework} implementation which can also \textbf{improve the computation time significantly}. For \textbf{Lotka-Volterra ODE}, a time disadvantage of the \textbf{CVODES integrator} can be observed. This result is of little importance overall as it is the consequence of the constant time transfer of the data block memory required between \textbf{Matlab context} and \textbf{native C/C++ CVODES integrator}. This can become a problem in case of improper use (e.g. if one is using multiple calls with \textbf{small time intervals}, which in turn is triggering a \textbf{small number of integration steps}, instead of a \textbf{smaller number of calls} with a \textbf{larger time intervals}) and can \textbf{diminish} the gain based on \textbf{parallelization of multiple shooting} above mentioned.
 
 \begin{figure}[h!]
     \centering
@@ -599,12 +655,31 @@ From Figure:\ref{label_chart} one can observe that the \textbf{CVODES integrator
 
 \section{Conclusions and Recommendations}
 \label{conclusions_recommandations}
-The next natural step for this project will be to integrate it into \textbf{MLI project}. To this end, the current provided \textit{API} should make this process smooth enough. Current implementation contains the complete necessary backend for the initial \textbf{ODE} problem  definition \ref{problem_definition}. On top of that, it contains also the necessary implementation for \textbf{DAE} and it also partially implements the \textit{API}. The remaining \textbf{first} and \textbf{second order} sensitivity functionality should be straightforward to implemented based on the counterpart \textbf{ODE} implementation.
-More work should be putted into exposing more optional configuration parameters for the \textbf{code generation API}.
+
+The next natural step for this project will be the integration into \textbf{MLI framework}. To this end, the current provided \textit{API} should be the base of a smooth process. 
+\\
+\\
+The current implementation contains the complete necessary backend for the initial \textbf{ODE} problem introduced in \textbf{Section:}\ref{problem_definition}. Besides that, it also contains the necessary implementation for \textbf{DAE} and it also partially implements the \textit{API}. The remaining \textbf{first} and \textbf{second order sensitivity} functionalities should be straightforward to implement based on the counterpart \textbf{ODE} implementation.
+\\
+\\
+An experiment can be performed to optimize the number of multiple shooting intervals mentioned in \textbf{Section:}\ref{Integrator_comparation} to optimize for time by means of \textbf{parallelization}, modeling the problem as an \textbf{OCP} for \textbf{producer-consumer} which closely resembles \textbf{Lotka-Volterra dynamical system}.
+\\
+\\
+Last but not least, more work should be put into exposing, in a optional way, the rest of the possible configuration parameters that can be part of the \textbf{code generation API}.
+\\
+\\
+\\
+\\
+\\
+\\
+\\
+\\
+\\
+\\
+\\
+\\
 
 %\input{jacobianExplained.tex}
-
-
 
 
 \bibliography{References}

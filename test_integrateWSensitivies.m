@@ -18,7 +18,7 @@ nrThreads = 2;
 %one time initialization/build/compile integrator
 InitODEWSensitites('lotka_volterraCasADi',tStart , tFin/( M ), M, nrThreads);
 
-% inp.sd -- initial value for differential states $x_0$
+% inp.sd -- initial values for differential states $x_0$
 XX0 = repmat( [x0], 1, M );
 
 %ODE parameters ( per ODE integration call )
@@ -70,15 +70,15 @@ inp.fwd_x0 = fwd(:,1:inp.nx);
 inp.fwd_p = fwd(:,inp.nx+1:inp.nx+inp.np);
 
 
-%directional matrix sensdirs1
-fwd = sensdirs2;
+%directional matrix sensdirs2
+%fwd = sensdirs2;
 %split between number of componentx of x_0 and number of components of
 %the parameters
-inp.fwd_x0 = [inp.fwd_x0; fwd(:,1:inp.nx) ];
-inp.fwd_p = [inp.fwd_p; fwd(:,inp.nx+1:inp.nx+inp.np)];
+%inp.fwd_x0 = [inp.fwd_x0; fwd(:,1:inp.nx) ];
+%inp.fwd_p = [inp.fwd_p; fwd(:,inp.nx+1:inp.nx+inp.np)];
 
 %number of sensitivity directions
-inp.nr_sensdirs = 2;
+inp.nr_sensdirs = 1;
 %if one wants to compute for more sensitivity directions, he must
 %concatenate the split components ( fwd_x0 / dwd_p ) of all sensitivity
 %directions and increase nr_sensdirs like it is done previously.
