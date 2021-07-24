@@ -356,7 +356,7 @@ In a nutshell, the \textbf{workflow} of the project is determined by 3 steps, op
 
 \begin{enumerate}
 	\item \textit{Dynamical System definition:} Definition of the problem using a high level language.
-	\item \textit{One time code generation:} By calling one of the fallowing functions: \textbf{initODE()}, \textbf{InitODEWSensitites()} or \textbf{ InitODEWSensititesAndHessian()}
+	\item \textit{One time code generation:} By calling one of the following functions: \textbf{initODE()}, \textbf{InitODEWSensitites()} or \textbf{ InitODEWSensititesAndHessian()}
 	\item \textit{Multiple function calls of:} \textbf{integrate()}, \textbf{integrateWSensitivies()} and \textbf{integrateWSensitiviesAndHessian()}
 \end{enumerate}
 
@@ -545,7 +545,7 @@ If one requires also access to the \textbf{ first} and \textbf{second order sens
 \end{itemize}
 
 
-At this point, all the prerequisites for the future calls of \textit{integrator}, \textit{sensitivity} and \textit{hessian} ( $integrate(inp)$, $integrateWSensitivies(inp)$ and  $integrateWSensitiviesAndHessian(inp)$ ) w.r.t. the ODE are satisfied as they are the result of the automatic generation. These can be access using the \textbf{global variable: s2m}. Another important aspect is that one of the optional parameter \textbf{nrThreads/threads} can be used to parallelize the process by explicitly defining the \textbf{ number of threads} used. \\ 
+At this point, all the prerequisites for the future calls of \textit{integrator}, \textit{sensitivity} and \textit{hessian} ( $integrate(inp)$, $integrateWSensitivies(inp)$ and  $integrateWSensitiviesAndHessian(inp)$ ) w.r.t. the ODE are satisfied as they are the result of the automatic generation. These can be accessed using the \textbf{global variable: s2m}. Another important aspect is that one of the optional parameter \textbf{nrThreads/threads} can be used to parallelize the process by explicitly defining the \textbf{ number of threads} used. \\ 
 
 Each of the calls must contain, as parameter, an object that contains a subset of the variables defined below:
 
@@ -656,7 +656,7 @@ From Figure:\ref{label_chart} one can observe that the \textbf{CVODES integrator
 \section{Conclusions and Recommendations}
 \label{conclusions_recommandations}
 
-The next natural step for this project will be the integration into \textbf{MLI framework}. To this end, the current provided \textit{API} should be the base of a smooth process. 
+The next natural step for this project will be the integration into the \textbf{MLI framework}. To this end, the current provided \textit{API} should be the base of a smooth process. 
 \\
 \\
 The current implementation contains the complete necessary backend for the initial \textbf{ODE} problem introduced in \textbf{Section:}\ref{problem_definition}. Besides that, it also contains the necessary implementation for \textbf{DAE} and it also partially implements the \textit{API}. The remaining \textbf{first} and \textbf{second order sensitivity} functionalities should be straightforward to implement based on the counterpart \textbf{ODE} implementation.
@@ -665,7 +665,7 @@ The current implementation contains the complete necessary backend for the initi
 An experiment can be performed to optimize the number of multiple shooting intervals mentioned in \textbf{Section:}\ref{Integrator_comparation} to optimize for time by means of \textbf{parallelization}, modeling the problem as an \textbf{OCP} for \textbf{producer-consumer} which closely resembles \textbf{Lotka-Volterra dynamical system}.
 \\
 \\
-Last but not least, more work should be put into exposing, in a optional way, the rest of the possible configuration parameters that can be part of the \textbf{code generation API}.
+Last but not least, more work should be put into exposing, in an optional way, the rest of the possible configuration parameters that can be part of the \textbf{code generation API}.
 \\
 \\
 \\
